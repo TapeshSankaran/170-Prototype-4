@@ -48,6 +48,52 @@ class LaserGroup extends Phaser.Physics.Arcade.Group
 	}
 }
 
+// ========== CONVOY CODE START ==========
+// Laser class for convoy ships (allies)
+class ConvoyLaser extends Phaser.Physics.Arcade.Sprite
+{
+	constructor(scene, x, y) {
+		super(scene, x, y, 'laser');
+	}
+
+	fire(x, y) {
+		this.body.reset(x, y);
+		this.setActive(true);
+		this.setVisible(true);
+		this.rotation = Math.PI * 0.5;
+		this.setVelocityX(900);
+	}
+
+	kill() {
+		this.body.reset(-10, -10);
+		this.setActive(false);
+		this.setVisible(false);
+		this.setVelocityX(0);
+	}
+}
+
+class ConvoyLaserGroup extends Phaser.Physics.Arcade.Group
+{
+	constructor(scene) {
+		super(scene.physics.world, scene);
+		this.createMultiple({
+			frameQuantity: 500,
+			key: 'laser',
+			active: false,
+			visible: false,
+			classType: ConvoyLaser
+		});
+	}
+
+	fireBullet(x, y) {
+		const laser = this.getFirstDead(false);
+		if(laser) {
+			laser.fire(x, y);
+		}
+	}
+}
+// ========== CONVOY CODE END ==========
+
 class SpaceScene extends Phaser.Scene
 {
 	constructor() {
@@ -71,6 +117,13 @@ class SpaceScene extends Phaser.Scene
 
         this.canShoot = true;
         this.numUFOS = 0;
+        // ========== CONVOY CODE START ==========
+        // Convoy properties (convoys group will be created in create() method)
+        this.convoyActive = false;
+        this.convoySpawnTimer = null;
+        this.convoyLaserGroup = null;
+        this.convoyShootTimer = null;
+        // ========== CONVOY CODE END ==========
 
         a: Phaser.Input.Keyboard.Key;
         d: Phaser.Input.Keyboard.Key;
@@ -91,6 +144,11 @@ class SpaceScene extends Phaser.Scene
 		this.load.image('ufoy', 'UFO/PNG/shipYellow_manned.png');
 		this.load.image('ufod', 'UFO/PNG/laserBlue_burst.png');
 		this.load.image('red', 'red.png');
+		// ========== CONVOY CODE START ==========
+		// Load convoy images
+		this.load.image('convoyBlue', 'CONVOY/convoyBlue.png');
+		this.load.image('convoyRed', 'CONVOY/convoyRed.png');
+		// ========== CONVOY CODE END ==========
 		this.load.audio('bgmusic', ['finalMusic.mp3']);
 		this.load.audio('shot', ['shot.mp3']);
 		this.load.audio('wave', ['wave.mp3']);
@@ -121,6 +179,10 @@ class SpaceScene extends Phaser.Scene
 		this.boomSound = this.sound.add('boom', {volume: 1});
 		this.music.play()
 		this.laserGroup = new LaserGroup(this);
+		// ========== CONVOY CODE START ==========
+		// Create convoy laser group for ally shooting
+		this.convoyLaserGroup = new ConvoyLaserGroup(this);
+		// ========== CONVOY CODE END ==========
 
 		this.waveText = this.add.text(width/2, 30, 'Wave 1', {
 			fontSize: 32, 
@@ -161,6 +223,23 @@ class SpaceScene extends Phaser.Scene
         
         this.ufos = this.physics.add.group();
         this.spawnUFO();
+        
+        // ========== CONVOY CODE START ==========
+        // Create convoy group and spawn immediately
+        this.convoys = this.physics.add.group();
+        // Spawn convoy immediately when player spawns
+        this.spawnConvoy();
+        // Make convoy ships shoot at enemies periodically
+        this.convoyShootTimer = this.time.addEvent({
+            delay: 800, // Shoot every 0.8 seconds
+            callback: () => {
+                if (!this.over && this.canMove && this.convoys.children.entries.length > 0) {
+                    this.convoyShoot();
+                }
+            },
+            loop: true
+        });
+        // ========== CONVOY CODE END ==========
 	}
 
 	saveHighscore(score) {
@@ -185,6 +264,17 @@ class SpaceScene extends Phaser.Scene
         this.canShoot = true;
         this.numUFOS = 0;
 		this.timeBuf = this.game.getTime() + 64170;
+		
+		// ========== CONVOY CODE START ==========
+		// Reset convoy state when reinitializing
+		this.convoyActive = false;
+		if (this.convoySpawnTimer) {
+			this.convoySpawnTimer.remove();
+		}
+		if (this.convoyShootTimer) {
+			this.convoyShootTimer.remove();
+		}
+		// ========== CONVOY CODE END ==========
 	}
 
 	addShip() {
@@ -272,6 +362,100 @@ class SpaceScene extends Phaser.Scene
         this.physics.add.existing(this.alien);
         this.ufos.add(this.alien);
     }
+    
+    // ========== CONVOY CODE START ==========
+    // Method to spawn a convoy of ally ships that stay with the player
+    spawnConvoy() {
+        let width = this.cameras.main.width;
+        let height = this.cameras.main.height;
+        
+        // Number of ships in convoy
+        let convoySize = 4;
+        
+        // Array of convoy images
+        let convoyImages = ["convoyBlue", "convoyRed"];
+        
+        // Spacing between convoy ships
+        let spacing = 80;
+        
+        // Position convoy around the left side of player (player is at 25% width)
+        let baseX = width * 0.15;
+        let baseY = height * 0.5;
+        
+        for (let i = 0; i < convoySize; i++) {
+            // Alternate between blue and red convoy ships
+            let convoyImage = convoyImages[i % 2];
+            let offsetX = 0;
+            let offsetY = 0;
+            
+            // V formation around player
+            if (i === 0) {
+                offsetX = -30;
+                offsetY = -spacing * 0.6;
+            } else if (i === 1) {
+                offsetX = -30;
+                offsetY = spacing * 0.6;
+            } else if (i === 2) {
+                offsetX = -60;
+                offsetY = -spacing * 1.2;
+            } else {
+                offsetX = -60;
+                offsetY = spacing * 1.2;
+            }
+            
+            let startX = baseX + offsetX;
+            let startY = baseY + offsetY;
+            
+            // Create convoy ship as a regular sprite so it can follow player position
+            let convoyShip = this.add.image(startX, startY, convoyImage);
+            convoyShip.rotation = Math.PI * 0.5;
+            
+            convoyShip.scale *= 0.5;
+            convoyShip.setData('convoyIndex', i);
+            convoyShip.setData('baseOffset', {x: offsetX, y: offsetY});
+            convoyShip.setData('isAlly', true); // Mark as ally
+            convoyShip.setData('followPlayer', true);
+            
+            this.physics.add.existing(convoyShip);
+            // DO NOT add to ufos group - they are allies, not enemies
+            this.convoys.add(convoyShip);
+        }
+        
+        this.convoyActive = true;
+    }
+    
+    // Method for convoy ships to shoot at enemies
+    convoyShoot() {
+        if (!this.convoys || this.convoys.children.entries.length === 0) return;
+        if (!this.ufos || this.ufos.children.entries.length === 0) return;
+        
+        // Each convoy ship shoots at nearest enemy
+        this.convoys.children.entries.forEach(convoyShip => {
+            if (!convoyShip.active) return;
+            
+            // Find nearest enemy
+            let nearestEnemy = null;
+            let nearestDistance = Infinity;
+            
+            this.ufos.children.entries.forEach(enemy => {
+                if (!enemy.active) return;
+                let dx = enemy.x - convoyShip.x;
+                let dy = enemy.y - convoyShip.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < nearestDistance && enemy.x > 0 && enemy.x < this.cameras.main.width) {
+                    nearestDistance = distance;
+                    nearestEnemy = enemy;
+                }
+            });
+            
+            // Shoot at nearest enemy if found
+            if (nearestEnemy && nearestDistance < 800) {
+                this.convoyLaserGroup.fireBullet(convoyShip.x + 20, convoyShip.y);
+            }
+        });
+    }
+    // ========== CONVOY CODE END ==========
 
 	fireBullet() {
 		this.laserGroup.fireBullet(this.ship.x, this.ship.y - 20);
@@ -335,6 +519,24 @@ class SpaceScene extends Phaser.Scene
         if (this.enter.isDown && this.ship.x > 50 && this.over){
 			this.scene.restart();
         }
+        
+        // ========== CONVOY CODE START ==========
+        // Update convoy ship positions to follow player
+        if (this.convoys && this.convoys.children.entries.length > 0 && this.ship) {
+            this.convoys.children.entries.forEach(convoyShip => {
+                if (!convoyShip.active || !convoyShip.getData('followPlayer')) return;
+                let offset = convoyShip.getData('baseOffset');
+                if (offset) {
+                    // Keep convoy ships in formation relative to player
+                    let targetX = this.ship.x + offset.x;
+                    let targetY = this.ship.y + offset.y;
+                    // Smoothly move towards target position
+                    convoyShip.x += (targetX - convoyShip.x) * 0.05;
+                    convoyShip.y += (targetY - convoyShip.y) * 0.05;
+                }
+            });
+        }
+        // ========== CONVOY CODE END ==========
 
 		if (this.timeLeft < 25000) {
 			this.shootTime = 250;
@@ -358,14 +560,57 @@ class SpaceScene extends Phaser.Scene
 			}
 		});
 
+        // Player laser collision with enemies
         this.laserGroup.children.iterate(laser => {
             this.ufos.children.iterate(ufo => {
-				//console.log(laser)
+                // Skip if ufo is actually a convoy ship (ally)
+                if (ufo.getData('isAlly')) return;
                 if (this.physics.overlap(laser, ufo)) {
                     this.handleCollision(laser, ufo);
                 }
             });
         });
+        
+        // ========== CONVOY CODE START ==========
+        // Convoy laser collision with enemies
+        if (this.convoyLaserGroup) {
+            this.convoyLaserGroup.children.iterate(convoyLaser => {
+                if (!convoyLaser.active) return;
+                this.ufos.children.iterate(ufo => {
+                    // Skip convoy ships (allies) and check only enemies
+                    if (ufo.getData('isAlly')) return;
+                    if (this.physics.overlap(convoyLaser, ufo)) {
+                        // Convoy laser hits enemy
+                        this.score += 100;
+                        convoyLaser.kill();
+                        ufo.destroy();
+                        this.numUFOS--;
+                        this.boomSound.play();
+                        this.boom = this.add.image(ufo.x, ufo.y, 'ufod');
+                        this.boom.scale *= 0.75;
+                        this.boom.rotation += Phaser.Math.Between(45, 135);
+                        this.tweens.add({
+                            targets: this.boom,
+                            alpha: { from: 1, to: 0},
+                            x: { from : this.boom.x, to: this.boom.x + -this.speed*67},
+                            ease: 'Sine.easeOut',
+                            duration: 500
+                        });
+                        
+                        // Check for wave completion
+                        if (this.numUFOS == 0) {
+                            this.waveSound.play();
+                            this.score += 500 * (0.5 * this.wave);
+                            this.wave++;
+                            const text = "Wave " + this.wave;
+                            this.waveText.setText(text);
+                            this.spawnUFO();
+                        }
+                    }
+                });
+            });
+        }
+        // ========== CONVOY CODE END ==========
 
 
 
