@@ -3,13 +3,14 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
 		super(scene, x, y, 'laser');
 	}
 
-	fire(x, y) {
+	fire(x, y, velX, velY) {
 		this.body.reset(x, y);
 
 		this.setActive(true);
 		this.setVisible(true);
 		this.rotation = Math.PI * 0.5;
-		this.setVelocityX(900);
+		this.setVelocityX(velX);
+		this.setVelocityY(velY);
 
 	}
 
@@ -41,7 +42,29 @@ class LaserGroup extends Phaser.Physics.Arcade.Group {
 		const laser = this.getFirstDead(false);
 
 		if (laser) {
-			laser.fire(x, y);
+			laser.fire(x, y, 900, 0);
+		}
+	}
+}
+
+class UFOLaserGroup extends Phaser.Physics.Arcade.Group {
+	constructor(scene) {
+		super(scene.physics.world, scene);
+
+		this.createMultiple({
+			frameQuantity: 3000,
+			key: 'ufolaser',
+			active: false,
+			visible: false,
+			classType: Laser
+		});
+	}
+
+	fireBullet(x, y, velX, velY) {
+		const ufolaser = this.getFirstDead(false);
+
+		if (ufolaser) {
+			ufolaser.fire(x, y, velX, velY);
 		}
 	}
 }
@@ -81,6 +104,7 @@ class SpaceScene extends Phaser.Scene {
 		this.load.image('bar', 'SHIP/PNG/Effects/shield3.png');
 		this.load.image('spawn', 'SHIP/PNG/Lasers/laserRed08.png');
 		this.load.image('background', 'SHIP/Backgrounds/darkPurple.png');
+		this.load.image('ufolaser', 'UFO/PNG/Lasers/laserBlue04.png');
 		this.load.image('ufob', 'UFO/PNG/shipBeige_manned.png');
 		this.load.image('ufop', 'UFO/PNG/shipPink_manned.png');
 		this.load.image('ufobl', 'UFO/PNG/shipBlue_manned.png');
@@ -118,6 +142,7 @@ class SpaceScene extends Phaser.Scene {
 		this.boomSound = this.sound.add('boom', { volume: 1 });
 		this.music.play()
 		this.laserGroup = new LaserGroup(this);
+		this.ufoLaserGroup = new UFOLaserGroup(this);
 
 		this.waveText = this.add.text(width / 2, 30, 'Wave 1', {
 			fontSize: 32,
@@ -340,12 +365,44 @@ class SpaceScene extends Phaser.Scene {
 
 		this.alien.startFollow(followConfig);
 
+		this.alien.fireRate = Phaser.Math.Between(1000, 5000)
+		this.alien.cooldown = false
+		this.alien.start = true
+
 		this.physics.add.existing(this.alien);
 		this.ufos.add(this.alien);
 	}
 
 	fireBullet() {
 		this.laserGroup.fireBullet(this.ship.x, this.ship.y - 20);
+	}
+
+	ufoBullet(ufo) {
+		switch (ufo.color) {
+			case 'ufob': // Straight Line
+				
+				break;
+
+			case 'ufobl': //Wave
+				
+				break;
+
+			case 'ufop': // Cycle
+				
+				break;
+
+			case 'ufog': // Z-Line
+				
+				break;
+
+			case 'ufoy': // Straight Fire
+
+				break;
+
+			default:
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y + 20, -900, 0);
+				break;
+		}
 	}
 
 	handleCollision(laser, ufo) {
@@ -438,7 +495,22 @@ class SpaceScene extends Phaser.Scene {
 			});
 		});
 
+		this.ufos.children.iterate(ufo => {
+			if (ufo.start) {
+				this.time.delayedCall(ufo.fireRate, () => {
+				ufo.start = false;
+			});
+			}
+			
+			if (!ufo.cooldown && !ufo.start) {
+				this.ufoBullet(ufo)
+				ufo.cooldown = true
+				this.time.delayedCall(ufo.fireRate, () => {
+				ufo.cooldown = false;
+			});
 
+			}
+		});
 
 		if (this.timeLeft >= 0)
 			this.timeLeft = this.timeBuf - this.game.getTime();
