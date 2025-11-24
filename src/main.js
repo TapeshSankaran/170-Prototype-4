@@ -248,11 +248,15 @@ class SpaceScene extends Phaser.Scene {
 		let height = this.cameras.main.height;
 		let curve, delay, startX, startY;
 
+		// Safety margin: prevent aliens from going behind player
+		// Player is at approximately width * 0.25, so keep aliens to the right
+		let minX = width * 0.15; // Minimum x position for alien paths
+
 		switch (color) {
 			case 'ufob': // Straight Line
 				startX = width + 50;
 				startY = Phaser.Math.Between(100, height - 100);
-				let endX = -20;
+				let endX = Math.max(minX, width * 0.2); // Keep away from player
 				let endY = startY + Phaser.Math.Between(-100, 100);
 				curve = new Phaser.Curves.Line(
 					new Phaser.Math.Vector2(startX, startY),
@@ -267,6 +271,8 @@ class SpaceScene extends Phaser.Scene {
 				let wavePoints = [];
 				for (let i = 0; i <= 5; i++) {
 					let x = startX - (i * width / 5);
+					// Ensure wave doesn't go too far left
+					x = Math.max(x, minX);
 					let y = startY + Math.sin(i * Math.PI / 2) * 150;
 					wavePoints.push(x, y);
 				}
@@ -278,6 +284,10 @@ class SpaceScene extends Phaser.Scene {
 				let centerX = Phaser.Math.Between(width * 0.6, width * 0.8);
 				let centerY = Phaser.Math.Between(height * 0.3, height * 0.7);
 				let radius = Phaser.Math.Between(80, 120);
+				// Ensure circle doesn't extend too far left
+				if (centerX - radius < minX) {
+					centerX = minX + radius;
+				}
 				curve = new Phaser.Curves.Ellipse(centerX, centerY, radius, radius);
 				delay = 3500;
 				startX = centerX + radius;
@@ -291,8 +301,8 @@ class SpaceScene extends Phaser.Scene {
 					startX, startY,
 					startX - width * 0.25, startY - 100,
 					startX - width * 0.5, startY,
-					startX - width * 0.75, startY + 100,
-					-50, startY
+					startX - width * 0.65, startY + 100,
+					Math.max(minX, width * 0.2), startY // Keep final point away from player
 				];
 				curve = new Phaser.Curves.Spline(zigzagPoints);
 				delay = 4500;
@@ -303,8 +313,14 @@ class SpaceScene extends Phaser.Scene {
 				this.origin = [Phaser.Math.Between(width * 2 / 3, width), Phaser.Math.Between(10, height)]
 				this.dec = [this.origin[0] > 270 ? Phaser.Math.Between(-270, -10) : Phaser.Math.Between(10, 270), this.origin[1] > 270 ? Phaser.Math.Between(-270, -10) : Phaser.Math.Between(10, 270)]
 				this.p1 = [this.origin[0] + this.dec[0], this.origin[1] + this.dec[1]];
+				// Ensure p1 doesn't go too far left
+				this.p1[0] = Math.max(this.p1[0], minX);
+
 				this.dec = [this.p1[0] > 270 ? Phaser.Math.Between(-270, -10) : Phaser.Math.Between(10, 270), this.p1[1] > 270 ? Phaser.Math.Between(-270, -10) : Phaser.Math.Between(10, 270)]
 				this.p2 = [this.p1[0] + this.dec[0], this.p1[1] + this.dec[1]];
+				// Ensure p2 doesn't go too far left
+				this.p2[0] = Math.max(this.p2[0], minX);
+
 				this.points = [
 					this.origin[0], this.origin[1],
 					this.p1[0], this.p1[1],
@@ -380,19 +396,19 @@ class SpaceScene extends Phaser.Scene {
 	ufoBullet(ufo) {
 		switch (ufo.color) {
 			case 'ufob': // Straight Line
-				
+
 				break;
 
 			case 'ufobl': //Wave
-				
+
 				break;
 
 			case 'ufop': // Cycle
-				
+
 				break;
 
 			case 'ufog': // Z-Line
-				
+
 				break;
 
 			case 'ufoy': // Straight Fire
@@ -498,16 +514,16 @@ class SpaceScene extends Phaser.Scene {
 		this.ufos.children.iterate(ufo => {
 			if (ufo.start) {
 				this.time.delayedCall(ufo.fireRate, () => {
-				ufo.start = false;
-			});
+					ufo.start = false;
+				});
 			}
-			
+
 			if (!ufo.cooldown && !ufo.start) {
 				this.ufoBullet(ufo)
 				ufo.cooldown = true
 				this.time.delayedCall(ufo.fireRate, () => {
-				ufo.cooldown = false;
-			});
+					ufo.cooldown = false;
+				});
 
 			}
 		});
