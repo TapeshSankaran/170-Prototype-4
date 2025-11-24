@@ -839,32 +839,45 @@ class SpaceScene extends Phaser.Scene {
 		let ufoColor = ufo.getData ? ufo.getData('ufoColor') : (ufo.texture ? ufo.texture.key : 'ufoy');
 		
 		switch (ufoColor) {
-			case 'ufob': // Straight Line - shoots straight at player
+			case 'ufob': // Charger - Fires ring of bullets
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed, 0); // Angles starting from shooting left, clockwise
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed, speed/2);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed/2, (Math.sqrt(3)/2) * speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, 0, speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, speed/2, (Math.sqrt(3)/2) * speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, (Math.sqrt(3)/2) * speed, speed/2);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, speed, 0);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, (Math.sqrt(3)/2) * speed, -speed/2);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, speed/2, -(Math.sqrt(3)/2) * speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, 0, -speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed/2, -(Math.sqrt(3)/2) * speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed, -speed/2);
+				break;
+
+			case 'ufobl': // Spurter - Fires in straight spread twice
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed, -speed/2);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed, 0);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed, speed/2);
+				// Slower second set 
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed/2, -speed/4);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed/2, 0);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed/2, speed/4);
+				break;
+
+			case 'ufop': // Sniper - Fires bullets angled at player
 				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, dx, dy);
 				break;
 
-			case 'ufobl': // Wave - shoots at player with slight spread
-				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, dx, dy);
-				// Add a second shot with slight angle
-				let angle = Math.atan2(dy, dx) + Phaser.Math.DegToRad(15);
-				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, Math.cos(angle) * speed, Math.sin(angle) * speed);
-				break;
-
-			case 'ufop': // Cycle - shoots 3 bullets in spread
-				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, dx, dy);
-				let angle1 = Math.atan2(dy, dx) - Phaser.Math.DegToRad(20);
-				let angle2 = Math.atan2(dy, dx) + Phaser.Math.DegToRad(20);
+			case 'ufog': // Controller - Fires spread towards player (Hit Conveys + Cover Fire)
+				let angle1 = Math.atan2(dy, dx) - Phaser.Math.DegToRad(5);
+				let angle2 = Math.atan2(dy, dx) + Phaser.Math.DegToRad(5);
 				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, Math.cos(angle1) * speed, Math.sin(angle1) * speed);
 				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, Math.cos(angle2) * speed, Math.sin(angle2) * speed);
 				break;
 
-			case 'ufog': // Z-Line - shoots straight at player
-				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, dx, dy);
-				break;
-
-			case 'ufoy': // Straight Fire - shoots straight at player
+			case 'ufoy': // Fodder - Fires straight forward
 			default:
-				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, dx, dy);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed, 0);
 				break;
 		}
 	}
