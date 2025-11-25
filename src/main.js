@@ -54,12 +54,13 @@ class ConvoyLaser extends Phaser.Physics.Arcade.Sprite
 		super(scene, x, y, 'laser');
 	}
 
-	fire(x, y) {
-		this.body.reset(x, y);
+	fire(x, y, velX, velY) {
+		this.body.reset(x, y, velX, velY);
 		this.setActive(true);
 		this.setVisible(true);
-		this.setVelocityX(900);
-		this.rotation = Math.PI / 2;
+		this.setVelocityX(velX);
+		this.setVelocityY(velY);
+		this.rotation = Math.atan2(velY, velX) + Math.PI / 2;
 	}
 
 	kill() {
@@ -83,10 +84,10 @@ class ConvoyLaserGroup extends Phaser.Physics.Arcade.Group
 		});
 	}
 
-	fireBullet(x, y) {
+	fireBullet(x, y, velX, velY) {
 		const laser = this.getFirstDead(false);
 		if(laser) {
-			laser.fire(x, y);
+			laser.fire(x, y, velX, velY);
 		}
 	}
 }
@@ -129,6 +130,7 @@ class SpaceScene extends Phaser.Scene {
 		this.scrollSpeed = 0;
 		this.scrollTotal = 0;
 		this.canMove = true;
+		this.yMove = 0;
 		this.over = false;
 		this.shipX = -1;
 		this.shootTime = 500;
@@ -147,6 +149,14 @@ class SpaceScene extends Phaser.Scene {
 
 		this.formchange = false;
 		this.formation = 'wedge';
+		let s = 80;
+		this.formations = {
+			'file': [{x: s, y: 0}, {x: -s, y: 0}, {x: -2*s, y: 0}, {x: -3*s, y: 0}],
+			'vee' : [{x: -s, y: s}, {x: s, y: s}, {x: s, y: -s}, {x: -s, y: -s}],
+			'line': [{x: 0, y: -s}, {x: 0, y: s}, {x: 0, y: -2*s}, {x: 0, y: 2*s}],
+			'shield': [{x: -s, y: 0}, {x: -2*s, y: 0}, {x: -s, y: -s}, {x: -s, y: s}],
+			'wedge': [{x: -0.5*s, y: -s}, {x: -0.5*s, y: s}, {x: -s, y: -2*s}, {x: -s, y: 2*s}]
+		};
 
 		a: Phaser.Input.Keyboard.Key;
 		d: Phaser.Input.Keyboard.Key;
@@ -773,14 +783,7 @@ class SpaceScene extends Phaser.Scene {
 		this.formchange = true;
 		const s = 80;
 
-		const formations = {
-			'file': [{x: s, y: 0}, {x: -s, y: 0}, {x: -2*s, y: 0}, {x: -3*s, y: 0}],
-			'vee' : [{x: -s, y: s}, {x: s, y: s}, {x: s, y: -s}, {x: -s, y: -s}],
-			'line': [{x: 0, y: -s}, {x: 0, y: s}, {x: 0, y: -2*s}, {x: 0, y: 2*s}],
-			'shield': [{x: -s, y: 0}, {x: -2*s, y: 0}, {x: -s, y: -s}, {x: -s, y: s}],
-			'wedge': [{x: -0.5*s, y: -s}, {x: -0.5*s, y: s}, {x: -s, y: -2*s}, {x: -s, y: 2*s}]
-		};
-		if (!formations[formation]) return;
+		if (!this.formations[formation]) return;
 		if (this.formation === formation) {
 			formation = 'wedge';
 		}
@@ -789,7 +792,7 @@ class SpaceScene extends Phaser.Scene {
 		for (let i = 0; i < this.convoys.children.entries.length; i++) {
 			let convoyShip = this.convoys.children.entries[i];
 			if (!convoyShip.active) continue;
-			let offset = formations[formation][i];
+			let offset = this.formations[formation][i];
 			convoyShip.setData('baseOffset', {x: offset.x, y: offset.y});
 		}
 		this.time.addEvent({
@@ -807,7 +810,7 @@ class SpaceScene extends Phaser.Scene {
         if (!this.ufos || this.ufos.children.entries.length === 0) return;
         
         // Each convoy ship shoots at nearest enemy
-        this.convoys.children.entries.forEach(convoyShip => {
+        this.convoys.children.entries.forEach((convoyShip, i) => {
             if (!convoyShip.active) return;
             
             // Find nearest enemy
@@ -828,7 +831,22 @@ class SpaceScene extends Phaser.Scene {
             
             // Shoot at nearest enemy if found
             if (nearestEnemy && nearestDistance < 800) {
-                this.convoyLaserGroup.fireBullet(convoyShip.x + 20, convoyShip.y);
+				let sx;
+				let sy;
+				let s = 80;
+				if (this.formation === 'wedge' || this.formation === 'line') {
+					sx = 900;
+					sy = 0;
+
+				} else if (this.formation === 'file') {
+					sx = this.yMove == 0 ? 900 : 0;
+					sy = -this.yMove * 900;
+				} else {
+					sx = this.formations[this.formation][i].x/s * 900;
+					sy = this.formations[this.formation][i].y/s * 900;
+				}
+
+                this.convoyLaserGroup.fireBullet(convoyShip.x + 20, convoyShip.y, sx, sy);
             }
         });
     }
@@ -943,6 +961,7 @@ class SpaceScene extends Phaser.Scene {
 		let height = this.cameras.main.height;
 		if (this.d.isDown && this.ship.x < width - 50 && this.canMove) {
 			this.ship.x += this.shipSpeed;
+			this.isMoving = true;
 		}
 
 		if (this.a.isDown && this.ship.x > 50 && this.canMove) {
@@ -951,10 +970,16 @@ class SpaceScene extends Phaser.Scene {
 
 		if (this.w.isDown && this.ship.y > 50 && this.canMove) {
 			this.ship.y -= this.shipSpeed;
+			this.yMove = -1;
 		}
 
 		if (this.s.isDown && this.ship.y < height - 50 && this.canMove) {
 			this.ship.y += this.shipSpeed;
+			this.yMove = 1;
+		}
+
+		if ((!this.w.isDown && !this.s.isDown) || this.ship.y <= 50 || this.ship.y >= height - 50) {
+			this.yMove = 0;
 		}
 
 		if (this.enter.isDown && this.ship.x > 50 && this.over) {
