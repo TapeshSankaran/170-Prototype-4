@@ -187,6 +187,7 @@ class SpaceScene extends Phaser.Scene {
 		this.load.audio('shot', ['shot.mp3']);
 		this.load.audio('wave', ['wave.mp3']);
 		this.load.audio('boom', ['explosion.mp3']);
+		this.load.audio('bgending', ['endingBG.mp3']);
 	}
 
 	create() {
@@ -208,6 +209,7 @@ class SpaceScene extends Phaser.Scene {
 		this.highScore = this.loadHighscore();
 
 		this.music = this.sound.add('bgmusic', { volume: 0.33 });
+		this.ending = this.sound.add('bgending', { volume: 0.33 });
 		this.shootSound = this.sound.add('shot', { volume: 0.1 });
 		this.waveSound = this.sound.add('wave', { volume: 1 });
 		this.boomSound = this.sound.add('boom', { volume: 1 });
@@ -424,6 +426,7 @@ class SpaceScene extends Phaser.Scene {
 		if (ship.health <= 0) {
 			if (ship === this.ship) {
 				// Player died - end game immediately
+				this.ending.play();
 				this.ship.dead = true;
 				this.over = true;
 				this.canMove = false;
@@ -439,6 +442,12 @@ class SpaceScene extends Phaser.Scene {
 				// Destroy player health bars
 				if (ship.healthBarBg) ship.healthBarBg.destroy();
 				if (ship.healthBarFill) ship.healthBarFill.destroy();
+				this.time.addEvent({
+					delay: 1000,
+					callback: () => {
+						this.music.stop();
+					}
+				});
 			} else {
 				// Convoy ship died - remove from convoy group
 				if (this.convoys && this.convoys.contains(ship)) {
@@ -480,8 +489,17 @@ class SpaceScene extends Phaser.Scene {
 		// If player is dead AND all convoy ships are dead, end the game
 		// (Note: Player death already ends game immediately in damageShip)
 		if ((playerDead || allConvoysDead) && !this.over) {
-			this.over = true;
+			this.ending.play();
 			this.canMove = false;
+
+			this.time.addEvent({
+				delay: 1000,
+				callback: () => {
+					this.music.stop();
+				}
+			});
+			
+			this.over = true;
 		}
 	}
 	// ========== HEALTH BAR CODE END ==========
@@ -929,7 +947,6 @@ class SpaceScene extends Phaser.Scene {
 		} else {
 			ufo.active = false;
 			ufo.visible = false;
-			this.over = true;
 		}
 		this.boomSound.play();
 		this.boom = this.add.image(ufo.x, ufo.y, 'ufod');
@@ -983,6 +1000,7 @@ class SpaceScene extends Phaser.Scene {
 		}
 
 		if (this.enter.isDown && this.ship.x > 50 && this.over) {
+			this.formation = 'wedge';
 			this.scene.restart();
         }
 
@@ -1311,11 +1329,11 @@ class SpaceScene extends Phaser.Scene {
 
 		this.scoreText.setText("Score " + this.score);
 
-		if (this.scrollSpeed < this.speed && this.timeLeft > 0) this.scrollSpeed += 0.1;
+		if (this.scrollSpeed < this.speed && this.timeLeft > 0 && !this.over) this.scrollSpeed += 0.1;
 
 		this.bg.tilePositionX += this.scrollSpeed;
 
-		if (this.timeLeft <= 1000) {
+		if (this.timeLeft <= 1000 || this.over) {
 			if (this.emerScreen.alpha > 0) {
 				this.emerScreen.alpha -= 0.001;
 			}
