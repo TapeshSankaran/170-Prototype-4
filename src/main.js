@@ -177,7 +177,11 @@ class SpaceScene extends Phaser.Scene {
 		this.load.image('ufog', 'UFO/PNG/shipGreen_manned.png');
 		this.load.image('ufoy', 'UFO/PNG/shipYellow_manned.png');
 		this.load.image('ufod', 'UFO/PNG/laserBlue_burst.png');
-		this.load.image('red', 'red.png');
+		this.load.image('arrowkey', 'UI/keyboard_arrow_up_outline.png');
+		this.load.image('wkey', 'UI/keyboard_w_outline.png');
+		this.load.image('akey', 'UI/keyboard_a_outline.png');
+		this.load.image('skey', 'UI/keyboard_s_outline.png');
+		this.load.image('dkey', 'UI/keyboard_d_outline.png');
 		// ========== CONVOY CODE START ==========
 		// Load convoy images
 		this.load.image('convoyBlue', 'CONVOY/convoyBlue.png');
@@ -221,6 +225,18 @@ class SpaceScene extends Phaser.Scene {
 		// ========== CONVOY CODE END ==========
 		this.ufoLaserGroup = new UFOLaserGroup(this);
 
+		var convoyGuide = this.make.image(this.uiConfig(width - 285, height - 70, "convoyBlue", 0, .5, .5));
+		var upArrow = this.make.image(this.uiConfig(width - 180, height - 90, "arrowkey", 0));
+		var downArrow = this.make.image(this.uiConfig(width - 180, height - 50, "arrowkey", 180));
+		var rightArrow = this.make.image(this.uiConfig(width - 140, height - 50, "arrowkey", 90));
+		var leftArrow = this.make.image(this.uiConfig(width - 220, height - 50, "arrowkey", 270));
+
+		var shipGuide = this.make.image(this.uiConfig(180, height - 70, "ship", 0, .5, .75));
+		var wGuide = this.make.image(this.uiConfig(285, height - 90, "wkey"));
+		var aGuide = this.make.image(this.uiConfig(245, height - 50, "akey"));
+		var sGuide = this.make.image(this.uiConfig(285, height - 50, "skey"));
+		var dGuide = this.make.image(this.uiConfig(325, height - 50, "dkey"));
+		
 		this.waveText = this.add.text(width / 2, 30, 'Wave 1', {
 			fontSize: 32,
 			color: '#FFCD3D',
@@ -278,6 +294,21 @@ class SpaceScene extends Phaser.Scene {
         });
         // ========== CONVOY CODE END ==========
 		this.addShip();
+	}
+
+	uiConfig(imgX, imgY, imgKey, imgAngle = 0, imgAlpha = 1, imgScale = .75) {
+    	return {
+			x: imgX,
+			y: imgY,
+			key: imgKey,
+			angle: imgAngle,
+			alpha: imgAlpha,
+			scale : {
+			   x: imgScale,
+			   y: imgScale
+			},
+			origin: {x: 0.5, y: 0.5}
+		};
 	}
 
 	saveHighscore(score) {
@@ -546,11 +577,15 @@ class SpaceScene extends Phaser.Scene {
 		let height = this.cameras.main.height;
 		let curve, delay, startX, startY;
 
+		// Safety margin: prevent aliens from going behind player
+		// Player is at approximately width * 0.25, so keep aliens to the right
+		let minX = width * 0.15; // Minimum x position for alien paths
+
 		switch (color) {
 			case 'ufob': // Straight Line
 				startX = width + 50;
 				startY = Phaser.Math.Between(100, height - 100);
-				let endX = -20;
+				let endX = Math.max(minX, width * 0.2); // Keep away from player
 				let endY = startY + Phaser.Math.Between(-100, 100);
 				curve = new Phaser.Curves.Line(
 					new Phaser.Math.Vector2(startX, startY),
@@ -565,6 +600,8 @@ class SpaceScene extends Phaser.Scene {
 				let wavePoints = [];
 				for (let i = 0; i <= 5; i++) {
 					let x = startX - (i * width / 5);
+					// Ensure wave doesn't go too far left
+					x = Math.max(x, minX);
 					let y = startY + Math.sin(i * Math.PI / 2) * 150;
 					wavePoints.push(x, y);
 				}
@@ -576,6 +613,10 @@ class SpaceScene extends Phaser.Scene {
 				let centerX = Phaser.Math.Between(width * 0.6, width * 0.8);
 				let centerY = Phaser.Math.Between(height * 0.3, height * 0.7);
 				let radius = Phaser.Math.Between(80, 120);
+				// Ensure circle doesn't extend too far left
+				if (centerX - radius < minX) {
+					centerX = minX + radius;
+				}
 				curve = new Phaser.Curves.Ellipse(centerX, centerY, radius, radius);
 				delay = 3500;
 				startX = centerX + radius;
@@ -589,8 +630,8 @@ class SpaceScene extends Phaser.Scene {
 					startX, startY,
 					startX - width * 0.25, startY - 100,
 					startX - width * 0.5, startY,
-					startX - width * 0.75, startY + 100,
-					-50, startY
+					startX - width * 0.65, startY + 100,
+					Math.max(minX, width * 0.2), startY // Keep final point away from player
 				];
 				curve = new Phaser.Curves.Spline(zigzagPoints);
 				delay = 4500;
@@ -908,32 +949,45 @@ class SpaceScene extends Phaser.Scene {
 		let ufoColor = ufo.getData ? ufo.getData('ufoColor') : (ufo.texture ? ufo.texture.key : 'ufoy');
 		
 		switch (ufoColor) {
-			case 'ufob': // Straight Line - shoots straight at player
+			case 'ufob': // Charger - Fires ring of bullets
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed, 0); // Angles starting from shooting left, clockwise
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed, speed/2);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed/2, (Math.sqrt(3)/2) * speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, 0, speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, speed/2, (Math.sqrt(3)/2) * speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, (Math.sqrt(3)/2) * speed, speed/2);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, speed, 0);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, (Math.sqrt(3)/2) * speed, -speed/2);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, speed/2, -(Math.sqrt(3)/2) * speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, 0, -speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed/2, -(Math.sqrt(3)/2) * speed);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed, -speed/2);
+				break;
+
+			case 'ufobl': // Spurter - Fires in straight spread twice
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed, -speed/2);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed, 0);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed, speed/2);
+				// Slower second set 
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed/2, -speed/4);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed/2, 0);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -(Math.sqrt(3)/2) * speed/2, speed/4);
+				break;
+
+			case 'ufop': // Sniper - Fires bullets angled at player
 				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, dx, dy);
 				break;
 
-			case 'ufobl': // Wave - shoots at player with slight spread
-				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, dx, dy);
-				// Add a second shot with slight angle
-				let angle = Math.atan2(dy, dx) + Phaser.Math.DegToRad(15);
-				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, Math.cos(angle) * speed, Math.sin(angle) * speed);
-				break;
-
-			case 'ufop': // Cycle - shoots 3 bullets in spread
-				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, dx, dy);
-				let angle1 = Math.atan2(dy, dx) - Phaser.Math.DegToRad(20);
-				let angle2 = Math.atan2(dy, dx) + Phaser.Math.DegToRad(20);
+			case 'ufog': // Controller - Fires spread towards player (Hit Conveys + Cover Fire)
+				let angle1 = Math.atan2(dy, dx) - Phaser.Math.DegToRad(5);
+				let angle2 = Math.atan2(dy, dx) + Phaser.Math.DegToRad(5);
 				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, Math.cos(angle1) * speed, Math.sin(angle1) * speed);
 				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, Math.cos(angle2) * speed, Math.sin(angle2) * speed);
 				break;
 
-			case 'ufog': // Z-Line - shoots straight at player
-				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, dx, dy);
-				break;
-
-			case 'ufoy': // Straight Fire - shoots straight at player
+			case 'ufoy': // Fodder - Fires straight forward
 			default:
-				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, dx, dy);
+				this.ufoLaserGroup.fireBullet(ufo.x, ufo.y, -speed, 0);
 				break;
 		}
 	}
@@ -1368,8 +1422,8 @@ class SpaceScene extends Phaser.Scene {
 
 const config = {
 	type: Phaser.AUTO,
-	width: 1200,
-	height: 900,
+	width: window.innerWidth,
+	height: window.innerHeight,
 	physics: {
 		default: 'arcade',
 		arcade: {
