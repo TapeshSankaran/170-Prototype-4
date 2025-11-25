@@ -164,7 +164,11 @@ class SpaceScene extends Phaser.Scene {
 		this.load.image('ufog', 'UFO/PNG/shipGreen_manned.png');
 		this.load.image('ufoy', 'UFO/PNG/shipYellow_manned.png');
 		this.load.image('ufod', 'UFO/PNG/laserBlue_burst.png');
-		this.load.image('red', 'red.png');
+		this.load.image('arrowkey', 'UI/keyboard_arrow_up_outline.png');
+		this.load.image('wkey', 'UI/keyboard_w_outline.png');
+		this.load.image('akey', 'UI/keyboard_a_outline.png');
+		this.load.image('skey', 'UI/keyboard_s_outline.png');
+		this.load.image('dkey', 'UI/keyboard_d_outline.png');
 		// ========== CONVOY CODE START ==========
 		// Load convoy images
 		this.load.image('convoyBlue', 'CONVOY/convoyBlue.png');
@@ -206,6 +210,18 @@ class SpaceScene extends Phaser.Scene {
 		// ========== CONVOY CODE END ==========
 		this.ufoLaserGroup = new UFOLaserGroup(this);
 
+		var convoyGuide = this.make.image(this.uiConfig(width - 285, height - 70, "convoyBlue", 0, .5, .5));
+		var upArrow = this.make.image(this.uiConfig(width - 180, height - 90, "arrowkey", 0));
+		var downArrow = this.make.image(this.uiConfig(width - 180, height - 50, "arrowkey", 180));
+		var rightArrow = this.make.image(this.uiConfig(width - 140, height - 50, "arrowkey", 90));
+		var leftArrow = this.make.image(this.uiConfig(width - 220, height - 50, "arrowkey", 270));
+
+		var shipGuide = this.make.image(this.uiConfig(180, height - 70, "ship", 0, .5, .75));
+		var wGuide = this.make.image(this.uiConfig(285, height - 90, "wkey"));
+		var aGuide = this.make.image(this.uiConfig(245, height - 50, "akey"));
+		var sGuide = this.make.image(this.uiConfig(285, height - 50, "skey"));
+		var dGuide = this.make.image(this.uiConfig(325, height - 50, "dkey"));
+		
 		this.waveText = this.add.text(width / 2, 30, 'Wave 1', {
 			fontSize: 32,
 			color: '#FFCD3D',
@@ -262,6 +278,21 @@ class SpaceScene extends Phaser.Scene {
             loop: true
         });
         // ========== CONVOY CODE END ==========
+	}
+
+	uiConfig(imgX, imgY, imgKey, imgAngle = 0, imgAlpha = 1, imgScale = .75) {
+    	return {
+			x: imgX,
+			y: imgY,
+			key: imgKey,
+			angle: imgAngle,
+			alpha: imgAlpha,
+			scale : {
+			   x: imgScale,
+			   y: imgScale
+			},
+			origin: {x: 0.5, y: 0.5}
+		};
 	}
 
 	saveHighscore(score) {
@@ -1187,8 +1218,8 @@ class SpaceScene extends Phaser.Scene {
 
 const config = {
 	type: Phaser.AUTO,
-	width: 1200,
-	height: 900,
+	width: window.innerWidth,
+	height: window.innerHeight,
 	physics: {
 		default: 'arcade',
 		arcade: {
