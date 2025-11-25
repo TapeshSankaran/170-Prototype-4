@@ -145,6 +145,9 @@ class SpaceScene extends Phaser.Scene {
         this.convoyShootTimer = null;
         // ========== CONVOY CODE END ==========
 
+		this.formchange = false;
+		this.formation = 'wedge';
+
 		a: Phaser.Input.Keyboard.Key;
 		d: Phaser.Input.Keyboard.Key;
 		enter: Phaser.Input.Keyboard.Key;
@@ -240,7 +243,7 @@ class SpaceScene extends Phaser.Scene {
 
 		this.reinitialize();
 
-		this.addShip();
+		
 		this.addEvents();
         
         this.ufos = this.physics.add.group();
@@ -262,6 +265,7 @@ class SpaceScene extends Phaser.Scene {
             loop: true
         });
         // ========== CONVOY CODE END ==========
+		this.addShip();
 	}
 
 	saveHighscore(score) {
@@ -480,6 +484,10 @@ class SpaceScene extends Phaser.Scene {
 		this.a = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
 		this.s = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
 		this.d = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+		this.up = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+		this.down = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+		this.left = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+		this.right = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
 
 		this.enter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 	}
@@ -758,6 +766,40 @@ class SpaceScene extends Phaser.Scene {
         
         this.convoyActive = true;
     }
+
+	changeConvoyPosition(formation) {
+		if (!this.convoys || this.convoys.children.entries.length === 0) return;
+		if (!this.ship || !this.ship.active) return;
+		this.formchange = true;
+		const s = 80;
+
+		const formations = {
+			'file': [{x: s, y: 0}, {x: -s, y: 0}, {x: -2*s, y: 0}, {x: -3*s, y: 0}],
+			'vee' : [{x: -s, y: s}, {x: s, y: s}, {x: s, y: -s}, {x: -s, y: -s}],
+			'line': [{x: 0, y: -s}, {x: 0, y: s}, {x: 0, y: -2*s}, {x: 0, y: 2*s}],
+			'shield': [{x: -s, y: 0}, {x: -2*s, y: 0}, {x: -s, y: -s}, {x: -s, y: s}],
+			'wedge': [{x: -0.5*s, y: -s}, {x: -0.5*s, y: s}, {x: -s, y: -2*s}, {x: -s, y: 2*s}]
+		};
+		if (!formations[formation]) return;
+		if (this.formation === formation) {
+			formation = 'wedge';
+		}
+		this.formation = formation;
+
+		for (let i = 0; i < this.convoys.children.entries.length; i++) {
+			let convoyShip = this.convoys.children.entries[i];
+			if (!convoyShip.active) continue;
+			let offset = formations[formation][i];
+			convoyShip.setData('baseOffset', {x: offset.x, y: offset.y});
+		}
+		this.time.addEvent({
+			delay: 500,
+			callback: () => {
+				this.formchange = false;
+			},
+			loop: false
+		});
+	}
     
     // Method for convoy ships to shoot at enemies
     convoyShoot() {
@@ -799,6 +841,7 @@ class SpaceScene extends Phaser.Scene {
 	ufoBullet(ufo) {
 		if (!ufo || !ufo.active) return;
 		if (!this.ufoLaserGroup) return;
+		if (this.over) return;
 		
 		// Calculate direction to player for all UFO types
 		let dx = 0;
@@ -917,6 +960,22 @@ class SpaceScene extends Phaser.Scene {
 		if (this.enter.isDown && this.ship.x > 50 && this.over) {
 			this.scene.restart();
         }
+
+		if (this.left.isDown && this.formchange == false && this.canMove) {
+			this.changeConvoyPosition('line');
+		}
+		
+		if (this.right.isDown && this.formchange == false && this.canMove) {
+			this.changeConvoyPosition('file');
+		}
+		
+		if (this.up.isDown && this.formchange == false && this.canMove) {
+			this.changeConvoyPosition('shield');
+		}
+		
+		if (this.down.isDown && this.formchange == false && this.canMove) {
+			this.changeConvoyPosition('vee');
+		}
         
         // ========== CONVOY CODE START ==========
         // Update convoy ship positions to follow player
