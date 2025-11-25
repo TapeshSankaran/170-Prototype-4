@@ -1052,6 +1052,108 @@ class SpaceScene extends Phaser.Scene {
             });
         }
         // ========== HEALTH BAR CODE END ==========
+        
+        // ========== COLLISION DAMAGE CODE START ==========
+        // Check for player ship collision with UFOs (ramming damage)
+        if (this.ship && this.ship.active && !this.over) {
+            this.ufos.children.iterate(ufo => {
+                if (!ufo || !ufo.active) return;
+                // Skip if ufo is actually a convoy ship (ally)
+                if (ufo.getData && ufo.getData('isAlly')) return;
+                
+                // Check collision using distance
+                let dx = ufo.x - this.ship.x;
+                let dy = ufo.y - this.ship.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                let hitRadius = (this.ship.width + ufo.width) * 0.35;
+                
+                if (distance < hitRadius) {
+                    // Player hits UFO - UFO destroyed, player takes quarter damage
+                    let quarterDamage = this.ship.maxHealth * 0.25;
+                    this.damageShip(this.ship, quarterDamage);
+                    
+                    // Destroy UFO
+                    this.boomSound.play();
+                    let boom = this.add.image(ufo.x, ufo.y, 'ufod');
+                    boom.scale *= 0.75;
+                    boom.rotation += Phaser.Math.Between(45, 135);
+                    this.tweens.add({
+                        targets: boom,
+                        alpha: { from: 1, to: 0 },
+                        x: { from: boom.x, to: boom.x + -this.speed * 67 },
+                        ease: 'Sine.easeOut',
+                        duration: 500
+                    });
+                    
+                    this.numUFOS--;
+                    ufo.destroy();
+                    
+                    // Check for wave completion
+                    if (this.numUFOS == 0) {
+                        this.waveSound.play();
+                        this.score += 500 * (0.5 * this.wave);
+                        this.wave++;
+                        const text = "Wave " + this.wave;
+                        this.waveText.setText(text);
+                        this.spawnUFO();
+                    }
+                    return; // Exit to avoid checking same UFO again
+                }
+            });
+        }
+        
+        // Check for convoy ship collision with UFOs (ramming damage)
+        if (this.convoys && this.convoys.children.entries.length > 0 && !this.over) {
+            this.convoys.children.entries.forEach(convoyShip => {
+                if (!convoyShip || !convoyShip.active) return;
+                
+                this.ufos.children.iterate(ufo => {
+                    if (!ufo || !ufo.active) return;
+                    // Skip if ufo is actually a convoy ship (ally)
+                    if (ufo.getData && ufo.getData('isAlly')) return;
+                    
+                    // Check collision using distance
+                    let dx = ufo.x - convoyShip.x;
+                    let dy = ufo.y - convoyShip.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    let hitRadius = (convoyShip.width + ufo.width) * 0.35;
+                    
+                    if (distance < hitRadius) {
+                        // Convoy ship hits UFO - UFO destroyed, convoy takes quarter damage
+                        let quarterDamage = convoyShip.maxHealth * 0.25;
+                        this.damageShip(convoyShip, quarterDamage);
+                        
+                        // Destroy UFO
+                        this.boomSound.play();
+                        let boom = this.add.image(ufo.x, ufo.y, 'ufod');
+                        boom.scale *= 0.75;
+                        boom.rotation += Phaser.Math.Between(45, 135);
+                        this.tweens.add({
+                            targets: boom,
+                            alpha: { from: 1, to: 0 },
+                            x: { from: boom.x, to: boom.x + -this.speed * 67 },
+                            ease: 'Sine.easeOut',
+                            duration: 500
+                        });
+                        
+                        this.numUFOS--;
+                        ufo.destroy();
+                        
+                        // Check for wave completion
+                        if (this.numUFOS == 0) {
+                            this.waveSound.play();
+                            this.score += 500 * (0.5 * this.wave);
+                            this.wave++;
+                            const text = "Wave " + this.wave;
+                            this.waveText.setText(text);
+                            this.spawnUFO();
+                        }
+                        return; // Exit to avoid checking same UFO again
+                    }
+                });
+            });
+        }
+        // ========== COLLISION DAMAGE CODE END ==========
 
 		// ========== WAVE DIFFICULTY CODE START ==========
 		// Make player shooting slower as waves increase (harder difficulty)
