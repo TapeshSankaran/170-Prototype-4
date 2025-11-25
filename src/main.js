@@ -893,7 +893,7 @@ class SpaceScene extends Phaser.Scene {
 				let sx;
 				let sy;
 				let s = 80;
-				if (this.formation === 'wedge' || this.formation === 'line') {
+				if (this.formation === 'wedge' || this.formation === 'line' || this.formation === 'shield') {
 					sx = 900;
 					sy = 0;
 
