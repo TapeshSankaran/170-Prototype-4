@@ -8,10 +8,9 @@ class Laser extends Phaser.Physics.Arcade.Sprite {
 
 		this.setActive(true);
 		this.setVisible(true);
-		this.rotation = Math.PI * 0.5;
 		this.setVelocityX(velX);
 		this.setVelocityY(velY);
-
+		this.rotation = Math.atan2(velY, velX) + Math.PI / 2;
 	}
 
 	kill() {
@@ -59,8 +58,8 @@ class ConvoyLaser extends Phaser.Physics.Arcade.Sprite
 		this.body.reset(x, y);
 		this.setActive(true);
 		this.setVisible(true);
-		this.rotation = Math.PI * 0.5;
 		this.setVelocityX(900);
+		this.rotation = Math.PI / 2;
 	}
 
 	kill() {
@@ -111,6 +110,7 @@ class UFOLaserGroup extends Phaser.Physics.Arcade.Group {
 
 		if (ufolaser) {
 			ufolaser.fire(x, y, velX, velY);
+			ufolaser.setTint(0xff7777); // Set UFO laser color to red
 		}
 	}
 }
@@ -465,7 +465,7 @@ class SpaceScene extends Phaser.Scene {
 		
 		// If player is dead AND all convoy ships are dead, end the game
 		// (Note: Player death already ends game immediately in damageShip)
-		if (playerDead && allConvoysDead && !this.over) {
+		if ((playerDead || allConvoysDead) && !this.over) {
 			this.over = true;
 			this.canMove = false;
 		}
