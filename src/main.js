@@ -135,7 +135,7 @@ class SpaceScene extends Phaser.Scene {
 		this.shipX = -1;
 		this.shootTime = 500;
 		this.speed = 10;
-		this.shipSpeed = 3.5;
+		this.shipSpeed = 4;
 
         this.canShoot = true;
         this.numUFOS = 0;
@@ -151,8 +151,8 @@ class SpaceScene extends Phaser.Scene {
 		this.formation = 'wedge';
 		let s = 80;
 		this.formations = {
-			'file': [{x: s, y: 0}, {x: -s, y: 0}, {x: -2*s, y: 0}, {x: -3*s, y: 0}],
-			'vee' : [{x: -s, y: s}, {x: s, y: s}, {x: s, y: -s}, {x: -s, y: -s}],
+			'file': [{x: -s, y: 0}, {x: -2*s, y: 0}, {x: -3*s, y: 0}, {x: -4*s, y: 0}],
+			'vee' : [{x: -0.75*s, y: 0.75*s}, {x: 0.75*s, y: 0.75*s}, {x: 0.75*s, y: -0.75*s}, {x: -0.75*s, y: -0.75*s}],
 			'line': [{x: 0, y: -s}, {x: 0, y: s}, {x: 0, y: -2*s}, {x: 0, y: 2*s}],
 			'shield': [{x: -s, y: 0}, {x: -2*s, y: 0}, {x: -s, y: -s}, {x: -s, y: s}],
 			'wedge': [{x: -0.5*s, y: -s}, {x: -0.5*s, y: s}, {x: -s, y: -2*s}, {x: -s, y: 2*s}]
@@ -225,17 +225,17 @@ class SpaceScene extends Phaser.Scene {
 		// ========== CONVOY CODE END ==========
 		this.ufoLaserGroup = new UFOLaserGroup(this);
 
-		var convoyGuide = this.make.image(this.uiConfig(width - 285, height - 70, "convoyBlue", 0, .5, .5));
-		var upArrow = this.make.image(this.uiConfig(width - 180, height - 90, "arrowkey", 0));
-		var downArrow = this.make.image(this.uiConfig(width - 180, height - 50, "arrowkey", 180));
-		var rightArrow = this.make.image(this.uiConfig(width - 140, height - 50, "arrowkey", 90));
-		var leftArrow = this.make.image(this.uiConfig(width - 220, height - 50, "arrowkey", 270));
+		var convoyGuide = this.make.image(this.assetConfig(width - 285, height - 70, "convoyBlue", 0, .5, .5));
+		var upArrow = this.make.image(this.assetConfig(width - 180, height - 90, "arrowkey", 0));
+		var downArrow = this.make.image(this.assetConfig(width - 180, height - 50, "arrowkey", 180));
+		var rightArrow = this.make.image(this.assetConfig(width - 140, height - 50, "arrowkey", 90));
+		var leftArrow = this.make.image(this.assetConfig(width - 220, height - 50, "arrowkey", 270));
 
-		var shipGuide = this.make.image(this.uiConfig(180, height - 70, "ship", 0, .5, .75));
-		var wGuide = this.make.image(this.uiConfig(285, height - 90, "wkey"));
-		var aGuide = this.make.image(this.uiConfig(245, height - 50, "akey"));
-		var sGuide = this.make.image(this.uiConfig(285, height - 50, "skey"));
-		var dGuide = this.make.image(this.uiConfig(325, height - 50, "dkey"));
+		var shipGuide = this.make.image(this.assetConfig(180, height - 70, "ship", 0, .5, .75));
+		var wGuide = this.make.image(this.assetConfig(285, height - 90, "wkey"));
+		var aGuide = this.make.image(this.assetConfig(245, height - 50, "akey"));
+		var sGuide = this.make.image(this.assetConfig(285, height - 50, "skey"));
+		var dGuide = this.make.image(this.assetConfig(325, height - 50, "dkey"));
 		
 		this.waveText = this.add.text(width / 2, 30, 'Wave 1', {
 			fontSize: 32,
@@ -296,7 +296,7 @@ class SpaceScene extends Phaser.Scene {
 		this.addShip();
 	}
 
-	uiConfig(imgX, imgY, imgKey, imgAngle = 0, imgAlpha = 1, imgScale = .75) {
+	assetConfig(imgX, imgY, imgKey, imgAngle = 0, imgAlpha = 1, imgScale = .75) {
     	return {
 			x: imgX,
 			y: imgY,
@@ -554,9 +554,9 @@ class SpaceScene extends Phaser.Scene {
 	spawnUFO() {
 		this.stringarray = ["ufob", "ufobl", "ufop", "ufog", "ufoy"];
 		// Increase aliens per wave - scales with wave number for progressive difficulty
-		// Base: 4-7, then add 1-2 aliens per wave
-		let baseMin = 4;
-		let baseMax = 7;
+		// Base: 1-3, then add 1-2 aliens per wave
+		let baseMin = 1;
+		let baseMax = 3;
 		let waveBonus = Math.floor(this.wave * 0.8); // Add aliens based on wave
 		let minAliens = baseMin + waveBonus;
 		let maxAliens = baseMax + waveBonus;
@@ -809,7 +809,7 @@ class SpaceScene extends Phaser.Scene {
             let startY = baseY + offsetY;
             
             // Create convoy ship as a regular sprite so it can follow player position
-            let convoyShip = this.add.image(startX, startY, convoyImage);
+            let convoyShip = this.make.image(this.assetConfig(startX, startY, convoyImage));
             convoyShip.rotation = Math.PI * 0.5;
             
             convoyShip.scale *= 0.5;
@@ -923,7 +923,7 @@ class SpaceScene extends Phaser.Scene {
 		// Calculate direction to player for all UFO types
 		let dx = 0;
 		let dy = 0;
-		let speed = 900;
+		let speed = 800;
 		
 		// If player exists, aim at player
 		if (this.ship && this.ship.active) {
@@ -1039,17 +1039,21 @@ class SpaceScene extends Phaser.Scene {
 			this.ship.x -= this.shipSpeed;
 		}
 
-		if (this.w.isDown && this.ship.y > 50 && this.canMove) {
-			this.ship.y -= this.shipSpeed;
+		if (this.w.isDown) {
 			this.yMove = -1;
+			if (this.ship.y > 50 && this.canMove) {
+				this.ship.y -= this.shipSpeed;
+			}
 		}
 
-		if (this.s.isDown && this.ship.y < height - 50 && this.canMove) {
-			this.ship.y += this.shipSpeed;
+		if (this.s.isDown) {
 			this.yMove = 1;
+			if (this.ship.y < height - 50 && this.canMove) {
+			this.ship.y += this.shipSpeed;
+			}
 		}
 
-		if ((!this.w.isDown && !this.s.isDown) || this.ship.y <= 50 || this.ship.y >= height - 50) {
+		if ((!this.w.isDown && !this.s.isDown)) {
 			this.yMove = 0;
 		}
 
