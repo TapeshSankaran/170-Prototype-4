@@ -116,6 +116,59 @@ class UFOLaserGroup extends Phaser.Physics.Arcade.Group {
 	}
 }
 
+class Anim {
+	constructor(scene, conf) {
+		// conf = { name:, url:, pos: {x:, y:}, s: {x: 1, y: 1}, a: 1, fs: {x:, y:, end:, fRate: 24}, rotation: 0, repeatTimes: }
+		let r = conf.rotation;
+		if (r === undefined) r = 0;
+
+		let fRate = conf.fs.fRate;
+		if (fRate === undefined) fRate = 24;
+
+		this.size = { x: conf.s ? conf.s.x : 1, y: conf.s ? conf.s.y : 1 }
+		this.alpha = conf.a ? conf.a : 1;
+
+		this.scene = scene;
+
+		this.pos = {x: conf.pos.x, y: conf.pos.y};
+		this.frameSize = {x: conf.fs.x, y: conf.fs.y, end: conf.fs.end};
+		this.rot = conf.rotation;
+		this.name = conf.name;
+		this.anim_set = this.scene.load.spritesheet({
+			key: conf.name,
+			url: conf.url,
+			frameConfig: {  frameWidth: conf.fs.x, frameHeight: conf.fs.y, endFrame: conf.fs.end }
+		});
+		this.config = {
+			key: conf.name+'Animation',
+			frames: 0,
+			frameRate: conf.fs.fRate,
+			repeat: conf.repeatTimes
+		}
+		this.sprite;
+	}
+
+	create() {
+		this.config.frames = this.scene.anims.generateFrameNumbers(this.name, { start: 0, end: this.frameSize.end })
+		this.scene.anims.create(this.config);
+		this.sprite = this.scene.add.sprite(this.pos.x, this.pos.y, this.name).play(this.name+"Animation");
+		this.sprite.rotation = this.rot;
+		this.sprite.alpha = this.alpha
+		this.sprite.setScale(this.size.x, this.size.y);
+	}
+
+	setPos(x, y) {
+		this.pos = { x: x, y: y };
+		this.sprite.x = x;
+		this.sprite.y = y;
+	}
+
+	setTint(hex, a=1) {
+		this.sprite.setTint(hex);
+		this.sprite.alpha = a;
+	}
+}
+
 class SpaceScene extends Phaser.Scene {
 	constructor() {
 		super('SpaceScene');
@@ -161,6 +214,8 @@ class SpaceScene extends Phaser.Scene {
 		a: Phaser.Input.Keyboard.Key;
 		d: Phaser.Input.Keyboard.Key;
 		enter: Phaser.Input.Keyboard.Key;
+		this.powerUpFire;
+		this.pickUpEffect;
 	}
 
 	preload() {
@@ -192,6 +247,32 @@ class SpaceScene extends Phaser.Scene {
 		this.load.audio('wave', ['wave.mp3']);
 		this.load.audio('boom', ['explosion.mp3']);
 		this.load.audio('bgending', ['endingBG.mp3']);
+
+		let W = this.cameras.main.width;
+		let H = this.cameras.main.height;
+		let conf = { 
+			name: 'fire', 
+			url: 'FX/Holy VFX 01 Repeatable.png', 
+			pos: {x: 0, y: 0},
+			s: { x: 5, y: 10 },
+			a: 0.5,
+			rotation: 0, 
+			fs: { x: 32, y: 32, end: 7, fRate: 32 }, 
+			repeatTimes: -1 
+		};
+		this.powerUpFire = new Anim(this, conf);
+
+		conf = { 
+			name: 'pickup', 
+			url: 'FX/Pickup.png', 
+			pos: {x: 0, y: 0},
+			s: { x: 2, y: 2 },
+			a: 1,
+			rotation: 0, 
+			fs: { x: 64, y: 64, end: 18, fRate: 32 }, 
+			repeatTimes: -1 
+		};
+		this.pickUpEffect = new Anim(this, conf);
 	}
 
 	create() {
@@ -293,7 +374,12 @@ class SpaceScene extends Phaser.Scene {
             loop: true
         });
         // ========== CONVOY CODE END ==========
+		this.powerUpFire.create();
 		this.addShip();
+		this.pickUpEffect.create()
+		this.pickUpEffect.setTint(0xff33bb, 1);
+
+		
 	}
 
 	uiConfig(imgX, imgY, imgKey, imgAngle = 0, imgAlpha = 1, imgScale = .75) {
@@ -1073,7 +1159,11 @@ class SpaceScene extends Phaser.Scene {
 		if (this.down.isDown && this.formchange == false && this.canMove) {
 			this.changeConvoyPosition('vee');
 		}
-        
+
+		// ANIMATIONS
+		this.powerUpFire.setPos(this.ship.x - 20, this.ship.y);
+        // ANIMATIONS
+
         // ========== CONVOY CODE START ==========
         // Update convoy ship positions to follow player
         if (this.convoys && this.convoys.children.entries.length > 0 && this.ship) {
@@ -1413,7 +1503,6 @@ class SpaceScene extends Phaser.Scene {
 					this.enterText.visible = true;
 					this.scrollTotal = this.bg.tilePositionY;
 					this.shipX = this.ship.x;
-
 				});
 			}
 		}
