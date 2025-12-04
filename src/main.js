@@ -188,6 +188,7 @@ class SpaceScene extends Phaser.Scene {
 		this.shootTime = 500;
 		this.speed = 10;
 		this.shipSpeed = 4;
+		this.fireRateUpActive = false;
 
         this.canShoot = true;
         this.numUFOS = 0;
@@ -321,35 +322,35 @@ class SpaceScene extends Phaser.Scene {
 
 		// UI for Convoy Formations
 		// Wedge
-		var wConvoy1 = this.make.image(this.assetConfig(convoyUI - 5, uiHeight - 10, "convoyForm", 0, .75, .15))
-		var wConvoy2 = this.make.image(this.assetConfig(convoyUI, uiHeight - 5, "convoyForm", 0, .75, .15))
-		var wShip = this.make.image(this.assetConfig(convoyUI + 5, uiHeight, "shipForm", 0, .75, .15))
-		var wConvoy3 = this.make.image(this.assetConfig(convoyUI, uiHeight + 5, "convoyForm", 0, .75, .15))
-		var wConvoy4 = this.make.image(this.assetConfig(convoyUI - 5, uiHeight + 10, "convoyForm", 0, .75, .15))
+		var wConvoy1 = this.make.image(this.assetConfig(convoyUI - 5, uiHeight - 10, "convoyForm", 0, .75, .15));
+		var wConvoy2 = this.make.image(this.assetConfig(convoyUI, uiHeight - 5, "convoyForm", 0, .75, .15));
+		var wShip = this.make.image(this.assetConfig(convoyUI + 5, uiHeight, "shipForm", 0, .75, .15));
+		var wConvoy3 = this.make.image(this.assetConfig(convoyUI, uiHeight + 5, "convoyForm", 0, .75, .15));
+		var wConvoy4 = this.make.image(this.assetConfig(convoyUI - 5, uiHeight + 10, "convoyForm", 0, .75, .15));
 		// Line
-		var lConvoy1 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight - 20, "convoyForm", 0, .75, .15))
-		var lConvoy2 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight - 10, "convoyForm", 0, .75, .15))
-		var lShip = this.make.image(this.assetConfig(convoyUI - 68, uiHeight, "shipForm", 0, .75, .15))
-		var lConvoy3 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight + 10, "convoyForm", 0, .75, .15))
-		var lConvoy4 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight + 20, "convoyForm", 0, .75, .15))
+		var lConvoy1 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight - 20, "convoyForm", 0, .75, .15));
+		var lConvoy2 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight - 10, "convoyForm", 0, .75, .15));
+		var lShip = this.make.image(this.assetConfig(convoyUI - 68, uiHeight, "shipForm", 0, .75, .15));
+		var lConvoy3 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight + 10, "convoyForm", 0, .75, .15));
+		var lConvoy4 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight + 20, "convoyForm", 0, .75, .15));
 		//Shield
-		var sConvoy1 = this.make.image(this.assetConfig(convoyUI, uiHeight - 85, "convoyForm", 0, .75, .15))
-		var sConvoy2 = this.make.image(this.assetConfig(convoyUI - 10, uiHeight - 75, "convoyForm", 0, .75, .15))
-		var sShip = this.make.image(this.assetConfig(convoyUI, uiHeight - 75, "shipForm", 0, .75, .15))
-		var sConvoy3 = this.make.image(this.assetConfig(convoyUI + 10, uiHeight - 75, "convoyForm", 0, .75, .15))
-		var sConvoy4 = this.make.image(this.assetConfig(convoyUI, uiHeight - 65, "convoyForm", 0, .75, .15))
+		var sConvoy1 = this.make.image(this.assetConfig(convoyUI, uiHeight - 85, "convoyForm", 0, .75, .15));
+		var sConvoy2 = this.make.image(this.assetConfig(convoyUI - 10, uiHeight - 75, "convoyForm", 0, .75, .15));
+		var sShip = this.make.image(this.assetConfig(convoyUI, uiHeight - 75, "shipForm", 0, .75, .15));
+		var sConvoy3 = this.make.image(this.assetConfig(convoyUI + 10, uiHeight - 75, "convoyForm", 0, .75, .15));
+		var sConvoy4 = this.make.image(this.assetConfig(convoyUI, uiHeight - 65, "convoyForm", 0, .75, .15));
 		// Vee
-		var sConvoy1 = this.make.image(this.assetConfig(convoyUI + 8, uiHeight + 79, "convoyForm", 0, .75, .15))
-		var sConvoy2 = this.make.image(this.assetConfig(convoyUI - 8, uiHeight + 79, "convoyForm", 0, .75, .15))
-		var sShip = this.make.image(this.assetConfig(convoyUI, uiHeight + 72, "shipForm", 0, .75, .15))
-		var sConvoy3 = this.make.image(this.assetConfig(convoyUI + 8, uiHeight + 65, "convoyForm", 0, .75, .15))
-		var sConvoy4 = this.make.image(this.assetConfig(convoyUI - 8, uiHeight + 65, "convoyForm", 0, .75, .15))
+		var sConvoy1 = this.make.image(this.assetConfig(convoyUI + 8, uiHeight + 79, "convoyForm", 0, .75, .15));
+		var sConvoy2 = this.make.image(this.assetConfig(convoyUI - 8, uiHeight + 79, "convoyForm", 0, .75, .15));
+		var sShip = this.make.image(this.assetConfig(convoyUI, uiHeight + 72, "shipForm", 0, .75, .15));
+		var sConvoy3 = this.make.image(this.assetConfig(convoyUI + 8, uiHeight + 65, "convoyForm", 0, .75, .15));
+		var sConvoy4 = this.make.image(this.assetConfig(convoyUI - 8, uiHeight + 65, "convoyForm", 0, .75, .15));
 		// Line
-		var lConvoy1 = this.make.image(this.assetConfig(convoyUI + 65, uiHeight, "convoyForm", 0, .75, .15))
-		var lConvoy2 = this.make.image(this.assetConfig(convoyUI + 75, uiHeight, "convoyForm", 0, .75, .15))
-		var lShip = this.make.image(this.assetConfig(convoyUI + 105, uiHeight, "shipForm", 0, .75, .15))
-		var lConvoy3 = this.make.image(this.assetConfig(convoyUI + 85, uiHeight, "convoyForm", 0, .75, .15))
-		var lConvoy4 = this.make.image(this.assetConfig(convoyUI + 95, uiHeight, "convoyForm", 0, .75, .15))
+		var lConvoy1 = this.make.image(this.assetConfig(convoyUI + 65, uiHeight, "convoyForm", 0, .75, .15));
+		var lConvoy2 = this.make.image(this.assetConfig(convoyUI + 75, uiHeight, "convoyForm", 0, .75, .15));
+		var lShip = this.make.image(this.assetConfig(convoyUI + 105, uiHeight, "shipForm", 0, .75, .15));
+		var lConvoy3 = this.make.image(this.assetConfig(convoyUI + 85, uiHeight, "convoyForm", 0, .75, .15));
+		var lConvoy4 = this.make.image(this.assetConfig(convoyUI + 95, uiHeight, "convoyForm", 0, .75, .15));
 
 		// UI for Ship Controls
 		var shipGuide = this.make.image(this.assetConfig(shipUI - 105, uiHeight, "ship", 0, .5, .75));
@@ -496,6 +497,35 @@ class SpaceScene extends Phaser.Scene {
 		// ========== HEALTH BAR CODE END ==========
 	}
 	
+	UpdatePowerUp(ship, powerType) {
+		switch (powerType) {
+			case 'fireRateUp': // Orange, halves player shoot time for 10 seconds
+				this.fireRateUpActive = true;
+				this.time.delayedCall(1000, () => {
+					this.fireRateUpActive = false;
+				});
+				break;
+
+			case 'shieldUp': // Blue, protects player from 5 bullets
+				
+				break;
+
+			case 'healthUp': // Red, heals player for 10 health (1 bullet)
+				this.updateShipHealth(ship, -10);
+				break;
+
+			case 'speedUp': // Green, increase player movement to 4.5 from 4 for 10 seconds
+				this.shipSpeed = 4.5;
+				this.time.delayedCall(1000, () => {
+					this.shipSpeed = 4;
+				});
+				break;
+
+			default:
+				break;
+		}
+	}
+
 	// ========== HEALTH BAR CODE START ==========
 	// Create health bar for player or convoy ship
 	createHealthBar(ship, type) {
@@ -560,8 +590,8 @@ class SpaceScene extends Phaser.Scene {
 		}
 	}
 	
-	// Damage ship and handle death
-	damageShip(ship, damage) {
+	// Update ship health and handle death
+	updateShipHealth(ship, damage) {
 		if (!ship || !ship.active || ship.health <= 0) return;
 		
 		ship.health -= damage;
@@ -645,7 +675,7 @@ class SpaceScene extends Phaser.Scene {
 		}
 		
 		// If player is dead AND all convoy ships are dead, end the game
-		// (Note: Player death already ends game immediately in damageShip)
+		// (Note: Player death already ends game immediately in updateShipHealth)
 		if ((playerDead || allConvoysDead) && !this.over) {
 			this.ending.play();
 			this.canMove = false;
@@ -1243,7 +1273,7 @@ class SpaceScene extends Phaser.Scene {
                 
                 if (distance < hitRadius) {
                     lasersToRemove.push(ufoLaser);
-                    this.damageShip(this.ship, 10); // Player takes 10 damage
+                    this.updateShipHealth(this.ship, 10); // Player takes 10 damage
                 }
             });
             // Remove lasers that hit the player
@@ -1265,7 +1295,7 @@ class SpaceScene extends Phaser.Scene {
                     
                     if (distance < hitRadius) {
                         lasersToRemove.push(ufoLaser);
-                        this.damageShip(convoyShip, 10); // Convoy ship takes 10 damage
+                        this.updateShipHealth(convoyShip, 10); // Convoy ship takes 10 damage
                     }
                 });
                 // Remove lasers that hit the convoy ship
@@ -1303,7 +1333,7 @@ class SpaceScene extends Phaser.Scene {
                 if (distance < hitRadius) {
                     // Player hits UFO - UFO destroyed, player takes quarter damage
                     let quarterDamage = this.ship.maxHealth * 0.25;
-                    this.damageShip(this.ship, quarterDamage);
+                    this.updateShipHealth(this.ship, quarterDamage);
                     
                     // Destroy UFO
                     this.boomSound.play();
@@ -1354,7 +1384,7 @@ class SpaceScene extends Phaser.Scene {
                     if (distance < hitRadius) {
                         // Convoy ship hits UFO - UFO destroyed, convoy takes quarter damage
                         let quarterDamage = convoyShip.maxHealth * 0.25;
-                        this.damageShip(convoyShip, quarterDamage);
+                        this.updateShipHealth(convoyShip, quarterDamage);
                         
                         // Destroy UFO
                         this.boomSound.play();
@@ -1402,8 +1432,12 @@ class SpaceScene extends Phaser.Scene {
 			if (this.emerScreen.alpha < 0.1 && this.canMove) {
 				this.emerScreen.alpha += 0.01;
 			}
-		} else {
+		} 
+		else {
 			this.shootTime = calculatedShootTime;
+		}
+		if (this.fireRateUpActive) {
+			this.shootTime /= 2;
 		}
 		// ========== WAVE DIFFICULTY CODE END ==========
 
