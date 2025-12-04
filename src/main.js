@@ -431,7 +431,7 @@ class SpaceScene extends Phaser.Scene {
 			align: 'center'
 		}).setOrigin(0.5, 0.5);
 
-		this.timeText = this.add.text(width / 2, 110, 'High Score 0' + this.highScore, {
+		this.timeText = this.add.text(width / 2, 110, 'High Score ' + this.highScore, {
 			fontSize: 32,
 			color: '#FFCD3D',
 			align: 'center'
@@ -600,10 +600,10 @@ class SpaceScene extends Phaser.Scene {
 				this.updateShipHealth(ship, -50);
 				break;
 
-			case 'speedUp': // Green, increase player movement to 4.5 from 4 for 10 seconds
-				this.shipSpeed = 5;
+			case 'speedUp': // Green, increase player movement to 4.75 from 4 for 10 seconds
+				this.shipSpeed += 0.75;
 				this.time.delayedCall(10000, () => {
-					this.shipSpeed = 4;
+					this.shipSpeed -= 0.75;
 				});
 				break;
 
