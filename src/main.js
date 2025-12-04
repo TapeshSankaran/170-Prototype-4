@@ -216,6 +216,28 @@ class SpaceScene extends Phaser.Scene {
 		enter: Phaser.Input.Keyboard.Key;
 		this.powerUpFire;
 		this.pickUpEffect;
+		
+		// ========== POWER-UP CODE START ==========
+		// Power-up properties
+		this.powerUps = null;
+		this.fireRateBoostActive = false;
+		this.fireRateBoostTimer = null;
+		this.shieldCharges = 0;
+		this.speedBoostActive = false;
+		this.speedBoostTimer = null;
+		this.baseShootTime = 500;
+		this.baseShipSpeed = 3.5;
+		this.powerUpSpawnTimer = null;
+		this.powerUps = null;
+		this.fireRateBoostActive = false;
+		this.fireRateBoostTimer = null;
+		this.shieldCharges = 0;
+		this.speedBoostActive = false;
+		this.speedBoostTimer = null;
+		this.baseShootTime = 500;
+		this.baseShipSpeed = 3.5;
+		this.powerUpSpawnTimer = null;
+		// ========== POWER-UP CODE END ==========
 	}
 
 	preload() {
@@ -245,6 +267,13 @@ class SpaceScene extends Phaser.Scene {
 		this.load.image('convoyBlue', 'CONVOY/convoyBlue.png');
 		this.load.image('convoyRed', 'CONVOY/convoyRed.png');
 		// ========== CONVOY CODE END ==========
+		// ========== POWER-UP CODE START ==========
+		// Load power-up images
+		this.load.image('powerupFireRate', 'UI/sword.png'); // Orange - Fire Rate Up
+		this.load.image('powerupShield', 'UI/shield.png'); // Blue - Shield Up
+		this.load.image('powerupHealth', 'UI/suit_hearts.png'); // Red - Health Up
+		this.load.image('powerupSpeed', 'UI/sword.png'); // Green - Speed Up
+		// ========== POWER-UP CODE END ==========
 		this.load.audio('bgmusic', ['finalMusic.mp3']);
 		this.load.audio('shot', ['shot.mp3']);
 		this.load.audio('wave', ['wave.mp3']);
@@ -418,11 +447,20 @@ class SpaceScene extends Phaser.Scene {
         });
         // ========== CONVOY CODE END ==========
 		this.powerUpFire.create();
+		// Hide powerUpFire animation - user doesn't want it visible on ship
+		if (this.powerUpFire && this.powerUpFire.sprite) {
+			this.powerUpFire.sprite.setVisible(false);
+		}
 		this.addShip();
 		this.pickUpEffect.create()
 		this.pickUpEffect.setTint(0xff33bb, 1);
-
 		
+		// ========== POWER-UP CODE START ==========
+		// Create power-up group
+		this.powerUps = this.physics.add.group();
+		// Start spawning power-ups periodically
+		this.startPowerUpSpawning();
+		// ========== POWER-UP CODE END ==========
 	}
 
 	assetConfig(imgX, imgY, imgKey, imgAngle = 0, imgAlpha = 1, imgScale = .75) {
@@ -472,6 +510,22 @@ class SpaceScene extends Phaser.Scene {
 			this.convoyShootTimer.remove();
 		}
 		// ========== CONVOY CODE END ==========
+		
+		// ========== POWER-UP CODE START ==========
+		// Reset power-up state
+		this.fireRateBoostActive = false;
+		this.shieldCharges = 0;
+		this.speedBoostActive = false;
+		if (this.fireRateBoostTimer) {
+			this.fireRateBoostTimer.remove();
+		}
+		if (this.speedBoostTimer) {
+			this.speedBoostTimer.remove();
+		}
+		if (this.powerUpSpawnTimer) {
+			this.powerUpSpawnTimer.remove();
+		}
+		// ========== POWER-UP CODE END ==========
 	}
 
 	addShip() {
@@ -1104,6 +1158,199 @@ class SpaceScene extends Phaser.Scene {
         });
     }
     // ========== CONVOY CODE END ==========
+    
+    // ========== POWER-UP CODE START ==========
+    // Start power-up spawning system
+    startPowerUpSpawning() {
+        // Spawn first power-up after 10 seconds
+        this.time.delayedCall(10000, () => {
+            if (!this.over && this.canMove) {
+                this.spawnPowerUp();
+            }
+        });
+        
+        // Spawn power-ups with dynamic rate (doubles when low health)
+        this.scheduleNextPowerUp();
+    }
+    
+    // Schedule next power-up spawn - doubles spawn rate when low health
+    scheduleNextPowerUp() {
+        if (this.over || !this.canMove) return;
+        
+        let isLowHealth = this.ship && this.ship.health && this.ship.health < (this.ship.maxHealth * 0.3);
+        // Base delay: 15-25 seconds, halved if low health (double spawn rate)
+        let baseDelay = Phaser.Math.Between(15000, 25000);
+        let delay = isLowHealth ? baseDelay * 0.5 : baseDelay;
+        
+        this.powerUpSpawnTimer = this.time.delayedCall(delay, () => {
+            if (!this.over && this.canMove) {
+                this.spawnPowerUp();
+                // Schedule next spawn
+                this.scheduleNextPowerUp();
+            }
+        });
+    }
+    
+    // Spawn a random power-up
+    spawnPowerUp() {
+        let width = this.cameras.main.width;
+        let height = this.cameras.main.height;
+        
+        // Determine spawn rate based on player health (double if low health)
+        let isLowHealth = this.ship && this.ship.health < (this.ship.maxHealth * 0.3);
+        
+        // Power-up types: 'fireRate', 'shield', 'health', 'speed'
+        let powerUpTypes = ['fireRate', 'shield', 'health', 'speed'];
+        // Double spawn chance for shield and health when low health
+        if (isLowHealth) {
+            powerUpTypes.push('shield', 'health', 'shield', 'health'); // Add extra entries to double chance
+        }
+        
+        let powerUpType = powerUpTypes[Phaser.Math.Between(0, powerUpTypes.length - 1)];
+        let imageKey = '';
+        let tint = 0xffffff;
+        
+        switch(powerUpType) {
+            case 'fireRate':
+                imageKey = 'powerupFireRate';
+                tint = 0xff8800; // Orange
+                break;
+            case 'shield':
+                imageKey = 'powerupShield';
+                tint = 0x0088ff; // Blue
+                break;
+            case 'health':
+                imageKey = 'powerupHealth';
+                tint = 0xff0000; // Red
+                break;
+            case 'speed':
+                imageKey = 'powerupSpeed';
+                tint = 0x00ff00; // Green
+                break;
+        }
+        
+        // Spawn power-up on the right side of screen
+        let spawnX = Phaser.Math.Between(width * 0.7, width - 50);
+        let spawnY = Phaser.Math.Between(100, height - 100);
+        
+        let powerUp = this.add.image(spawnX, spawnY, imageKey);
+        powerUp.setTint(tint);
+        powerUp.scale *= 0.6;
+        powerUp.setData('powerUpType', powerUpType);
+        
+        // Add physics body for collision
+        this.physics.add.existing(powerUp);
+        powerUp.body.setSize(powerUp.width * 0.8, powerUp.height * 0.8);
+        
+        // Add floating animation
+        this.tweens.add({
+            targets: powerUp,
+            y: powerUp.y + 20,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Add rotation animation
+        this.tweens.add({
+            targets: powerUp,
+            rotation: powerUp.rotation + Math.PI * 2,
+            duration: 3000,
+            repeat: -1,
+            ease: 'Linear'
+        });
+        
+        this.powerUps.add(powerUp);
+        
+        // Despawn after 10 seconds if not collected
+        this.time.delayedCall(10000, () => {
+            if (powerUp && powerUp.active) {
+                powerUp.destroy();
+            }
+        });
+    }
+    
+    // Collect power-up and apply effect
+    collectPowerUp(powerUp) {
+        if (!powerUp || !powerUp.active) return;
+        
+        let powerUpType = powerUp.getData('powerUpType');
+        
+        // Play pickup effect
+        this.pickUpEffect.setPos(powerUp.x, powerUp.y);
+        this.pickUpEffect.sprite.setVisible(true);
+        this.time.delayedCall(500, () => {
+            if (this.pickUpEffect && this.pickUpEffect.sprite) {
+                this.pickUpEffect.sprite.setVisible(false);
+            }
+        });
+        
+        switch(powerUpType) {
+            case 'fireRate':
+                // Fire Rate Up: Halves player shoot time for 10 seconds
+                this.applyFireRateBoost();
+                break;
+            case 'shield':
+                // Shield Up: Protects player from 5 bullets
+                this.shieldCharges += 5;
+                break;
+            case 'health':
+                // Health Up: Heals player for 10 health
+                if (this.ship && this.ship.active) {
+                    this.ship.health = Math.min(this.ship.health + 10, this.ship.maxHealth);
+                    this.updateHealthBar(this.ship);
+                }
+                break;
+            case 'speed':
+                // Speed Up: Increase player movement to 4.5 for 10 seconds
+                this.applySpeedBoost();
+                break;
+        }
+        
+        // Remove power-up
+        powerUp.destroy();
+    }
+    
+    // Apply fire rate boost (halves shoot time for 10 seconds)
+    applyFireRateBoost() {
+        if (this.fireRateBoostActive) {
+            // Reset timer if already active
+            if (this.fireRateBoostTimer) {
+                this.fireRateBoostTimer.remove();
+            }
+        }
+        
+        this.fireRateBoostActive = true;
+        this.baseShootTime = this.shootTime; // Save current shoot time
+        
+        // Set timer to remove boost after 10 seconds
+        this.fireRateBoostTimer = this.time.delayedCall(10000, () => {
+            this.fireRateBoostActive = false;
+            this.fireRateBoostTimer = null;
+        });
+    }
+    
+    // Apply speed boost (increase to 4.5 for 10 seconds)
+    applySpeedBoost() {
+        if (this.speedBoostActive) {
+            // Reset timer if already active
+            if (this.speedBoostTimer) {
+                this.speedBoostTimer.remove();
+            }
+        }
+        
+        this.speedBoostActive = true;
+        this.baseShipSpeed = this.shipSpeed; // Save current speed
+        
+        // Set timer to remove boost after 10 seconds
+        this.speedBoostTimer = this.time.delayedCall(10000, () => {
+            this.speedBoostActive = false;
+            this.shipSpeed = this.baseShipSpeed;
+            this.speedBoostTimer = null;
+        });
+    }
+    // ========== POWER-UP CODE END ==========
 
 	fireBullet() {
 		this.laserGroup.fireBullet(this.ship.x, this.ship.y - 20);
@@ -1275,7 +1522,10 @@ class SpaceScene extends Phaser.Scene {
 		}
 
 		// ANIMATIONS
-		this.powerUpFire.setPos(this.ship.x - 20, this.ship.y);
+		// Hide powerUpFire animation from ship
+		if (this.powerUpFire && this.powerUpFire.sprite) {
+			this.powerUpFire.sprite.setVisible(false);
+		}
         // ANIMATIONS
 
         // ========== CONVOY CODE START ==========
@@ -1356,6 +1606,32 @@ class SpaceScene extends Phaser.Scene {
             });
         }
         // ========== HEALTH BAR CODE END ==========
+        
+        // ========== POWER-UP CODE START ==========
+        // Check for power-up collection
+        if (this.powerUps && this.ship && this.ship.active && !this.over) {
+            this.powerUps.children.entries.forEach(powerUp => {
+                if (!powerUp || !powerUp.active) return;
+                
+                // Check collision using distance
+                let dx = powerUp.x - this.ship.x;
+                let dy = powerUp.y - this.ship.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                let hitRadius = (this.ship.width + powerUp.width) * 0.4;
+                
+                if (distance < hitRadius) {
+                    this.collectPowerUp(powerUp);
+                }
+            });
+        }
+        
+        // Apply speed boost if active
+        if (this.speedBoostActive) {
+            this.shipSpeed = 4.5; // Boosted speed
+        } else {
+            this.shipSpeed = this.baseShipSpeed; // Normal speed
+        }
+        // ========== POWER-UP CODE END ==========
         
         // ========== COLLISION DAMAGE CODE START ==========
         // Check for player ship collision with UFOs (ramming damage)
