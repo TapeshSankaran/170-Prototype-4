@@ -555,7 +555,7 @@ class SpaceScene extends Phaser.Scene {
 		switch (powerType) {
 			case 'fireRateUp': // Orange, halves player shoot time for 10 seconds
 				this.fireRateUpActive = true;
-				this.time.delayedCall(1000, () => {
+				this.time.delayedCall(10000, () => {
 					this.fireRateUpActive = false;
 				});
 				break;
@@ -565,17 +565,17 @@ class SpaceScene extends Phaser.Scene {
 					ship.shieldHealth = ship.shieldMax;
 				}
 				else {
-					createShield(ship);
+					this.createShield(ship);
 				}
 				break;
 
 			case 'healthUp': // Red, heals player for 10 health (1 bullet)
-				this.updateShipHealth(ship, -10);
+				this.updateShipHealth(ship, -50);
 				break;
 
 			case 'speedUp': // Green, increase player movement to 4.5 from 4 for 10 seconds
-				this.shipSpeed = 4.5;
-				this.time.delayedCall(1000, () => {
+				this.shipSpeed = 4.75;
+				this.time.delayedCall(10000, () => {
 					this.shipSpeed = 4;
 				});
 				break;
@@ -675,7 +675,7 @@ class SpaceScene extends Phaser.Scene {
 	updateShipHealth(ship, damage) {
 		if (!ship || !ship.active || ship.health <= 0) return;
 		
-		if (ship.shield) {
+		if (ship.shield && damage < 0) {
 			ship.shieldHealth -= damage;
 			if (ship.shieldHealth < 0) ship.shieldHealth = 0;
 			ship.shield.setTint(0xff0000);
@@ -688,6 +688,7 @@ class SpaceScene extends Phaser.Scene {
 		}
 		ship.health -= damage;
 		if (ship.health < 0) ship.health = 0;
+		if (ship.health > 100) ship.health = 100;
 		
 		// Visual feedback for taking damage - flash red
 		if (ship === this.ship || (ship.getData && ship.getData('isAlly'))) {
@@ -1200,10 +1201,10 @@ class SpaceScene extends Phaser.Scene {
         let isLowHealth = this.ship && this.ship.health < (this.ship.maxHealth * 0.3);
         
         // Power-up types: 'fireRate', 'shield', 'health', 'speed'
-        let powerUpTypes = ['fireRate', 'shield', 'health', 'speed'];
+        let powerUpTypes = ['fireRateUp', 'shieldUp', 'healthUp', 'speedUp'];
         // Double spawn chance for shield and health when low health
         if (isLowHealth) {
-            powerUpTypes.push('shield', 'health', 'shield', 'health'); // Add extra entries to double chance
+            powerUpTypes.push('shieldUp', 'healthUp', 'shieldUp', 'healthUp'); // Add extra entries to double chance
         }
         
         let powerUpType = powerUpTypes[Phaser.Math.Between(0, powerUpTypes.length - 1)];
@@ -1211,19 +1212,19 @@ class SpaceScene extends Phaser.Scene {
         let tint = 0xffffff;
         
         switch(powerUpType) {
-            case 'fireRate':
+            case 'fireRateUp':
                 imageKey = 'powerupFireRate';
                 tint = 0xff8800; // Orange
                 break;
-            case 'shield':
+            case 'shieldUp':
                 imageKey = 'powerupShield';
                 tint = 0x0088ff; // Blue
                 break;
-            case 'health':
+            case 'healthUp':
                 imageKey = 'powerupHealth';
                 tint = 0xff0000; // Red
                 break;
-            case 'speed':
+            case 'speedUp':
                 imageKey = 'powerupSpeed';
                 tint = 0x00ff00; // Green
                 break;
@@ -1286,27 +1287,7 @@ class SpaceScene extends Phaser.Scene {
             }
         });
         
-        switch(powerUpType) {
-            case 'fireRate':
-                // Fire Rate Up: Halves player shoot time for 10 seconds
-                this.applyFireRateBoost();
-                break;
-            case 'shield':
-                // Shield Up: Protects player from 5 bullets
-                this.shieldCharges += 5;
-                break;
-            case 'health':
-                // Health Up: Heals player for 10 health
-                if (this.ship && this.ship.active) {
-                    this.ship.health = Math.min(this.ship.health + 10, this.ship.maxHealth);
-                    this.updateHealthBar(this.ship);
-                }
-                break;
-            case 'speed':
-                // Speed Up: Increase player movement to 4.5 for 10 seconds
-                this.applySpeedBoost();
-                break;
-        }
+        this.UpdatePowerUp(this.ship, powerUpType)
         
         // Remove power-up
         powerUp.destroy();
@@ -1754,7 +1735,7 @@ class SpaceScene extends Phaser.Scene {
 			this.shootTime = calculatedShootTime;
 		}
 		if (this.fireRateUpActive) {
-			this.shootTime /= 2;
+			this.shootTime *= 0.5;
 		}
 		// ========== WAVE DIFFICULTY CODE END ==========
 
