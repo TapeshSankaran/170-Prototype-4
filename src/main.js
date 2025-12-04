@@ -1320,15 +1320,9 @@ class SpaceScene extends Phaser.Scene {
         if (!powerUp || !powerUp.active) return;
         
         let powerUpType = powerUp.getData('powerUpType');
-        
+        let effect = this.pickUpEffect.create();
         // Play pickup effect
-        this.pickUpEffect.setPos(powerUp.x, powerUp.y);
-        this.pickUpEffect.sprite.setVisible(true);
-        this.time.delayedCall(500, () => {
-            if (this.pickUpEffect && this.pickUpEffect.sprite) {
-                this.pickUpEffect.sprite.setVisible(false);
-            }
-        });
+        effect.setPos(powerUp.x, powerUp.y);
         
 		this.grabSound.play();
         this.UpdatePowerUp(this.ship, powerUpType)
