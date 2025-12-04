@@ -207,7 +207,7 @@ class SpaceScene extends Phaser.Scene {
 			'file': [{x: -s, y: 0}, {x: -2*s, y: 0}, {x: -3*s, y: 0}, {x: -4*s, y: 0}],
 			'vee' : [{x: -0.75*s, y: 0.75*s}, {x: 0.75*s, y: 0.75*s}, {x: 0.75*s, y: -0.75*s}, {x: -0.75*s, y: -0.75*s}],
 			'line': [{x: 0, y: -s}, {x: 0, y: s}, {x: 0, y: -2*s}, {x: 0, y: 2*s}],
-			'shield': [{x: -s, y: 0}, {x: -2*s, y: 0}, {x: -s, y: -s}, {x: -s, y: s}],
+			'shield': [{x: s, y: 0}, {x: -s, y: 0}, {x: 0, y: -s}, {x: 0, y: s}],
 			'wedge': [{x: -0.5*s, y: -s}, {x: -0.5*s, y: s}, {x: -s, y: -2*s}, {x: -s, y: 2*s}]
 		};
 
@@ -232,7 +232,10 @@ class SpaceScene extends Phaser.Scene {
 		this.load.image('ufog', 'UFO/PNG/shipGreen_manned.png');
 		this.load.image('ufoy', 'UFO/PNG/shipYellow_manned.png');
 		this.load.image('ufod', 'UFO/PNG/laserBlue_burst.png');
+		this.load.image('red', 'red.png');
 		this.load.image('arrowkey', 'UI/keyboard_arrow_up_outline.png');
+		this.load.image('shipForm', 'UI/steamdeck_trackpad.png');
+		this.load.image('convoyForm', 'UI/steamdeck_trackpad_outline.png');
 		this.load.image('wkey', 'UI/keyboard_w_outline.png');
 		this.load.image('akey', 'UI/keyboard_a_outline.png');
 		this.load.image('skey', 'UI/keyboard_s_outline.png');
@@ -306,17 +309,57 @@ class SpaceScene extends Phaser.Scene {
 		// ========== CONVOY CODE END ==========
 		this.ufoLaserGroup = new UFOLaserGroup(this);
 
-		var convoyGuide = this.make.image(this.assetConfig(width - 285, height - 70, "convoyBlue", 0, .5, .5));
-		var upArrow = this.make.image(this.assetConfig(width - 180, height - 90, "arrowkey", 0));
-		var downArrow = this.make.image(this.assetConfig(width - 180, height - 50, "arrowkey", 180));
-		var rightArrow = this.make.image(this.assetConfig(width - 140, height - 50, "arrowkey", 90));
-		var leftArrow = this.make.image(this.assetConfig(width - 220, height - 50, "arrowkey", 270));
+		let uiHeight = height - 90;
+		let convoyUI = width - 180;
+		let shipUI = 285;
 
-		var shipGuide = this.make.image(this.assetConfig(180, height - 70, "ship", 0, .5, .75));
-		var wGuide = this.make.image(this.assetConfig(285, height - 90, "wkey"));
-		var aGuide = this.make.image(this.assetConfig(245, height - 50, "akey"));
-		var sGuide = this.make.image(this.assetConfig(285, height - 50, "skey"));
-		var dGuide = this.make.image(this.assetConfig(325, height - 50, "dkey"));
+		// UI for Convoy Controls
+		var convoyGuide = this.make.image(this.assetConfig(convoyUI - 125, uiHeight, "convoyBlue", 0, .5, .5));
+		var upArrow = this.make.image(this.assetConfig(convoyUI, uiHeight - 40, "arrowkey", 0));
+		var leftArrow = this.make.image(this.assetConfig(convoyUI - 40, uiHeight, "arrowkey", 270));
+		var downArrow = this.make.image(this.assetConfig(convoyUI, uiHeight + 40, "arrowkey", 180));
+		var rightArrow = this.make.image(this.assetConfig(convoyUI + 40, uiHeight, "arrowkey", 90));
+
+		// UI for Convoy Formations
+		// Wedge
+		var wConvoy1 = this.make.image(this.assetConfig(convoyUI - 5, uiHeight - 10, "convoyForm", 0, .75, .15))
+		var wConvoy2 = this.make.image(this.assetConfig(convoyUI, uiHeight - 5, "convoyForm", 0, .75, .15))
+		var wShip = this.make.image(this.assetConfig(convoyUI + 5, uiHeight, "shipForm", 0, .75, .15))
+		var wConvoy3 = this.make.image(this.assetConfig(convoyUI, uiHeight + 5, "convoyForm", 0, .75, .15))
+		var wConvoy4 = this.make.image(this.assetConfig(convoyUI - 5, uiHeight + 10, "convoyForm", 0, .75, .15))
+		// Line
+		var lConvoy1 = this.make.image(this.assetConfig(convoyUI - 65, uiHeight - 20, "convoyForm", 0, .75, .15))
+		var lConvoy2 = this.make.image(this.assetConfig(convoyUI - 65, uiHeight - 10, "convoyForm", 0, .75, .15))
+		var lShip = this.make.image(this.assetConfig(convoyUI - 65, uiHeight, "shipForm", 0, .75, .15))
+		var lConvoy3 = this.make.image(this.assetConfig(convoyUI - 65, uiHeight + 10, "convoyForm", 0, .75, .15))
+		var lConvoy4 = this.make.image(this.assetConfig(convoyUI - 65, uiHeight + 20, "convoyForm", 0, .75, .15))
+		//Shield
+		var sConvoy1 = this.make.image(this.assetConfig(convoyUI, uiHeight - 85, "convoyForm", 0, .75, .15))
+		var sConvoy2 = this.make.image(this.assetConfig(convoyUI - 10, uiHeight - 75, "convoyForm", 0, .75, .15))
+		var sShip = this.make.image(this.assetConfig(convoyUI, uiHeight - 75, "shipForm", 0, .75, .15))
+		var sConvoy3 = this.make.image(this.assetConfig(convoyUI + 10, uiHeight - 75, "convoyForm", 0, .75, .15))
+		var sConvoy4 = this.make.image(this.assetConfig(convoyUI, uiHeight - 65, "convoyForm", 0, .75, .15))
+		// Vee
+		var sConvoy1 = this.make.image(this.assetConfig(convoyUI + 8, uiHeight + 79, "convoyForm", 0, .75, .15))
+		var sConvoy2 = this.make.image(this.assetConfig(convoyUI - 8, uiHeight + 79, "convoyForm", 0, .75, .15))
+		var sShip = this.make.image(this.assetConfig(convoyUI, uiHeight + 72, "shipForm", 0, .75, .15))
+		var sConvoy3 = this.make.image(this.assetConfig(convoyUI + 8, uiHeight + 65, "convoyForm", 0, .75, .15))
+		var sConvoy4 = this.make.image(this.assetConfig(convoyUI - 8, uiHeight + 65, "convoyForm", 0, .75, .15))
+		// Line
+		var lConvoy1 = this.make.image(this.assetConfig(convoyUI + 65, uiHeight, "convoyForm", 0, .75, .15))
+		var lConvoy2 = this.make.image(this.assetConfig(convoyUI + 75, uiHeight, "convoyForm", 0, .75, .15))
+		var lShip = this.make.image(this.assetConfig(convoyUI + 105, uiHeight, "shipForm", 0, .75, .15))
+		var lConvoy3 = this.make.image(this.assetConfig(convoyUI + 85, uiHeight, "convoyForm", 0, .75, .15))
+		var lConvoy4 = this.make.image(this.assetConfig(convoyUI + 95, uiHeight, "convoyForm", 0, .75, .15))
+
+		// UI for Ship Controls
+		var shipGuide = this.make.image(this.assetConfig(shipUI - 105, uiHeight, "ship", 0, .5, .75));
+		var wGuide = this.make.image(this.assetConfig(shipUI, uiHeight - 20, "wkey"));
+		var aGuide = this.make.image(this.assetConfig(shipUI - 40, uiHeight + 20, "akey"));
+		var sGuide = this.make.image(this.assetConfig(shipUI, uiHeight + 20, "skey"));
+		var dGuide = this.make.image(this.assetConfig(shipUI + 40, uiHeight + 20, "dkey"));
+
+
 		
 		this.waveText = this.add.text(width / 2, 30, 'Wave 1', {
 			fontSize: 32,
@@ -896,7 +939,6 @@ class SpaceScene extends Phaser.Scene {
             
             // Create convoy ship as a regular sprite so it can follow player position
             let convoyShip = this.make.image(this.assetConfig(startX, startY, convoyImage));
-            convoyShip.rotation = Math.PI * 0.5;
             
             convoyShip.scale *= 0.5;
             convoyShip.setData('convoyIndex', i);
@@ -975,7 +1017,7 @@ class SpaceScene extends Phaser.Scene {
             });
             
             // Shoot at nearest enemy if found
-            if (nearestEnemy && nearestDistance < 800) {
+            if (nearestEnemy && nearestDistance < 1000) {
 				let sx;
 				let sy;
 				let s = 80;
@@ -1354,7 +1396,8 @@ class SpaceScene extends Phaser.Scene {
 		let calculatedShootTime = Math.min(baseShootTime + waveShootPenalty, maxShootTime);
 		
 		// Emergency mode override (last 25 seconds)
-		if (this.timeLeft < 25000) {
+		//if (this.timeLeft < 25000) {
+		if (this.ship.health < 35) {
 			this.shootTime = Math.min(calculatedShootTime, 250);
 			this.speed = 20;
 			if (this.emerScreen.alpha < 0.1 && this.canMove) {
@@ -1469,11 +1512,11 @@ class SpaceScene extends Phaser.Scene {
 			}
 		});
 
-		if (this.timeLeft >= 0)
-			this.timeLeft = this.timeBuf - this.game.getTime();
+		//if (this.timeLeft >= 0)
+			//this.timeLeft = this.timeBuf - this.game.getTime();
 
-		if (!this.over)
-			this.timeText.setText(Math.trunc(this.timeLeft / 1000));
+		//if (!this.over)
+		//	this.timeText.setText(Math.trunc(this.timeLeft / 1000));
 
 		this.scoreText.setText("Score " + this.score);
 
@@ -1524,6 +1567,10 @@ const config = {
 			gravity: { y: 0 }
 		}
 	},
+	scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH
+    },
 	scene: [
 		SpaceScene
 	]
