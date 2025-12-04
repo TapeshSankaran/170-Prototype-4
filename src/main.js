@@ -302,6 +302,8 @@ class SpaceScene extends Phaser.Scene {
 		this.load.audio('wave', ['wave.mp3']);
 		this.load.audio('boom', ['explosion.mp3']);
 		this.load.audio('bgending', ['endingBG.mp3']);
+		this.load.audio('spawn', ['spawn.wav']);
+		this.load.audio('grab', ['grab.wav']);
 
 		let W = this.cameras.main.width;
 		let H = this.cameras.main.height;
@@ -320,7 +322,7 @@ class SpaceScene extends Phaser.Scene {
 		conf = { 
 			name: 'pickup', 
 			url: 'FX/Pickup.png', 
-			pos: {x: 0, y: 0},
+			pos: {x: -100, y: -100},
 			s: { x: 2, y: 2 },
 			a: 1,
 			rotation: 0, 
@@ -354,7 +356,10 @@ class SpaceScene extends Phaser.Scene {
 		this.shootSound = this.sound.add('shot', { volume: 0.1 });
 		this.waveSound = this.sound.add('wave', { volume: 1 });
 		this.boomSound = this.sound.add('boom', { volume: 1 });
-		this.music.play()
+		this.spawnSound = this.sound.add('spawn', { volume: 1 });
+		this.grabSound = this.sound.add('grab', { volume: 1 });
+		this.music.play();
+		this.music.setLoop(true);
 		this.laserGroup = new LaserGroup(this);
 		// ========== CONVOY CODE START ==========
 		// Create convoy laser group for ally shooting
@@ -596,7 +601,7 @@ class SpaceScene extends Phaser.Scene {
 				break;
 
 			case 'speedUp': // Green, increase player movement to 4.5 from 4 for 10 seconds
-				this.shipSpeed = 4.75;
+				this.shipSpeed = 5;
 				this.time.delayedCall(10000, () => {
 					this.shipSpeed = 4;
 				});
@@ -697,7 +702,7 @@ class SpaceScene extends Phaser.Scene {
 	updateShipHealth(ship, damage) {
 		if (!ship || !ship.active || ship.health <= 0) return;
 		
-		if (ship.shield && damage < 0) {
+		if (ship.shield && damage > 0) {
 			ship.shieldHealth -= damage;
 			if (ship.shieldHealth < 0) ship.shieldHealth = 0;
 			ship.shield.setTint(0xff0000);
@@ -1264,6 +1269,8 @@ class SpaceScene extends Phaser.Scene {
         powerUp.scale *= 0.6;
         powerUp.setData('powerUpType', powerUpType);
 		powerUp.setData('effect', powerUpEffect);
+
+		this.spawnSound.play();
         
         // Add physics body for collision
         this.physics.add.existing(powerUp);
@@ -1314,6 +1321,16 @@ class SpaceScene extends Phaser.Scene {
         
         let powerUpType = powerUp.getData('powerUpType');
         
+        // Play pickup effect
+        this.pickUpEffect.setPos(powerUp.x, powerUp.y);
+        this.pickUpEffect.sprite.setVisible(true);
+        this.time.delayedCall(500, () => {
+            if (this.pickUpEffect && this.pickUpEffect.sprite) {
+                this.pickUpEffect.sprite.setVisible(false);
+            }
+        });
+        
+		this.grabSound.play();
         this.UpdatePowerUp(this.ship, powerUpType)
         
 		powerUp.getData('effect').setTint(0xffffff, 0);
