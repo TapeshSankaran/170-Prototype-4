@@ -145,20 +145,41 @@ class Anim {
 			frameRate: conf.fs.fRate,
 			repeat: conf.repeatTimes
 		}
+		this.spriteConfig = {
+			n: this.name,
+			p: this.pos,
+			r: this.rot,
+			s: this.size,
+			a: this.alpha,
+		}
 		this.sprite;
+		
 	}
 
 	create() {
 		this.config.frames = this.scene.anims.generateFrameNumbers(this.name, { start: 0, end: this.frameSize.end })
 		this.scene.anims.create(this.config);
-		this.sprite = this.scene.add.sprite(this.pos.x, this.pos.y, this.name).play(this.name+"Animation");
-		this.sprite.rotation = this.rot;
-		this.sprite.alpha = this.alpha
-		this.sprite.setScale(this.size.x, this.size.y);
+		return new AnimSprite(this.scene, this.spriteConfig);
+	}
+}
+
+class AnimSprite {
+	constructor(scene, conf) {
+		this.scene = scene;
+		this.conf = conf;
+		this.n = conf.n;
+		this.p = conf.p;
+		this.s = conf.s;
+		this.a = conf.a;
+		this.r = conf.r;
+		this.sprite = this.scene.add.sprite(this.p.x, this.p.y, this.n).play(this.n+"Animation");
+		this.sprite.rotation = this.r;
+		this.sprite.alpha = this.a;
+		this.sprite.setScale(this.s.x, this.s.y);
 	}
 
 	setPos(x, y) {
-		this.pos = { x: x, y: y };
+		this.p = { x: x, y: y };
 		this.sprite.x = x;
 		this.sprite.y = y;
 	}
@@ -237,6 +258,8 @@ class SpaceScene extends Phaser.Scene {
 		this.baseShootTime = 500;
 		this.baseShipSpeed = 3.5;
 		this.powerUpSpawnTimer = null;
+		this.poweredUpEffect;
+		this.poweredUp = false;
 		// ========== POWER-UP CODE END ==========
 	}
 
@@ -304,9 +327,10 @@ class SpaceScene extends Phaser.Scene {
 			a: 1,
 			rotation: 0, 
 			fs: { x: 64, y: 64, end: 18, fRate: 32 }, 
-			repeatTimes: -1 
+			repeatTimes: 0 
 		};
 		this.pickUpEffect = new Anim(this, conf);
+		this.poweredUpEffect;
 	}
 
 	create() {
@@ -451,14 +475,12 @@ class SpaceScene extends Phaser.Scene {
             loop: true
         });
         // ========== CONVOY CODE END ==========
-		this.powerUpFire.create();
+		this.poweredUpEffect = this.powerUpFire.create();
 		// Hide powerUpFire animation - user doesn't want it visible on ship
-		if (this.powerUpFire && this.powerUpFire.sprite) {
-			this.powerUpFire.sprite.setVisible(false);
+		if (this.poweredUpEffect) {
+			this.poweredUpEffect.sprite.setVisible(false);
 		}
 		this.addShip();
-		this.pickUpEffect.create()
-		this.pickUpEffect.setTint(0xff33bb, 1);
 		
 		// ========== POWER-UP CODE START ==========
 		// Create power-up group
@@ -1239,10 +1261,14 @@ class SpaceScene extends Phaser.Scene {
         let spawnX = Phaser.Math.Between(width * 0.7, width - 50);
         let spawnY = Phaser.Math.Between(100, height - 100);
         
+		let powerUpEffect = this.pickUpEffect.create();
         let powerUp = this.add.image(spawnX, spawnY, imageKey);
+		powerUpEffect.setTint(tint);
+		powerUpEffect.setPos(spawnX, spawnY)
         powerUp.setTint(tint);
         powerUp.scale *= 0.6;
         powerUp.setData('powerUpType', powerUpType);
+		powerUp.setData('effect', powerUpEffect);
 
 		this.spawnSound.play();
         
@@ -1259,6 +1285,16 @@ class SpaceScene extends Phaser.Scene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+
+		this.tweens.add({
+            targets: powerUpEffect.sprite,
+            y: powerUpEffect.sprite.y + 20,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
         
         // Add rotation animation
         this.tweens.add({
@@ -1297,6 +1333,7 @@ class SpaceScene extends Phaser.Scene {
 		this.grabSound.play();
         this.UpdatePowerUp(this.ship, powerUpType)
         
+		powerUp.getData('effect').setTint(0xffffff, 0);
         // Remove power-up
         powerUp.destroy();
     }
@@ -1310,6 +1347,8 @@ class SpaceScene extends Phaser.Scene {
             }
         }
         
+		this.poweredUp = true;
+		this.poweredUpEffect.sprite.setVisible(true);
         this.fireRateBoostActive = true;
         this.baseShootTime = this.shootTime; // Save current shoot time
         
@@ -1317,6 +1356,8 @@ class SpaceScene extends Phaser.Scene {
         this.fireRateBoostTimer = this.time.delayedCall(10000, () => {
             this.fireRateBoostActive = false;
             this.fireRateBoostTimer = null;
+			this.poweredUp = false;
+			this.poweredUpEffect.sprite.setVisible(false);
         });
     }
     
@@ -1329,14 +1370,18 @@ class SpaceScene extends Phaser.Scene {
             }
         }
         
+		this.poweredUp = true;
         this.speedBoostActive = true;
         this.baseShipSpeed = this.shipSpeed; // Save current speed
+		this.poweredUpEffect.sprite.setVisible(true);
         
         // Set timer to remove boost after 10 seconds
         this.speedBoostTimer = this.time.delayedCall(10000, () => {
             this.speedBoostActive = false;
             this.shipSpeed = this.baseShipSpeed;
             this.speedBoostTimer = null;
+			this.poweredUp = false;
+			this.poweredUpEffect.sprite.setVisible(false);
         });
     }
     // ========== POWER-UP CODE END ==========
@@ -1487,7 +1532,7 @@ class SpaceScene extends Phaser.Scene {
 			this.yMove = 0;
 		}
 
-		if (this.enter.isDown && this.ship.x > 50 && this.over) {
+		if (this.enter.isDown && this.over) {
 			this.formation = 'wedge';
 			this.ending.stop();
 			this.waveSound.play();
@@ -1512,8 +1557,15 @@ class SpaceScene extends Phaser.Scene {
 
 		// ANIMATIONS
 		// Hide powerUpFire animation from ship
-		if (this.powerUpFire && this.powerUpFire.sprite) {
-			this.powerUpFire.sprite.setVisible(false);
+		if (this.poweredUpEffect && this.poweredUpEffect.sprite) {
+			if (this.poweredUp) {
+				console.log("goodbye");
+				this.poweredUpEffect.sprite.setVisible(true);
+			} else {
+				console.log("hello");
+				this.poweredUpEffect.sprite.setVisible(false);
+			}
+			this.poweredUpEffect.setPos(this.ship.x, this.ship.y);
 		}
         // ANIMATIONS
 
