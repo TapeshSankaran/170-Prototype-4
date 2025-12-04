@@ -299,7 +299,7 @@ class SpaceScene extends Phaser.Scene {
 		conf = { 
 			name: 'pickup', 
 			url: 'FX/Pickup.png', 
-			pos: {x: 0, y: 0},
+			pos: {x: -100, y: -100},
 			s: { x: 2, y: 2 },
 			a: 1,
 			rotation: 0, 
