@@ -334,7 +334,8 @@ class SpaceScene extends Phaser.Scene {
 		this.boomSound = this.sound.add('boom', { volume: 1 });
 		this.spawnSound = this.sound.add('spawn', { volume: 1 });
 		this.grabSound = this.sound.add('grab', { volume: 1 });
-		this.music.play()
+		this.music.play();
+		this.music.setLoop(true);
 		this.laserGroup = new LaserGroup(this);
 		// ========== CONVOY CODE START ==========
 		// Create convoy laser group for ally shooting
