@@ -507,7 +507,12 @@ class SpaceScene extends Phaser.Scene {
 				break;
 
 			case 'shieldUp': // Blue, protects player from 5 bullets
-				
+				if (ship.shield) {
+					ship.shieldHealth = ship.shieldMax;
+				}
+				else {
+					createShield(ship);
+				}
 				break;
 
 			case 'healthUp': // Red, heals player for 10 health (1 bullet)
@@ -525,6 +530,28 @@ class SpaceScene extends Phaser.Scene {
 				break;
 		}
 	}
+
+	createShield(ship) {
+		let shield = this.make.image(this.assetConfig(ship.x, ship.y, "bar", 90));
+		ship.shield = shield;
+		ship.shieldMax = 50;
+		ship.shieldHealth = 50;
+		this.UpdateShield(ship);
+	}
+
+	UpdateShield(ship) {
+		if (!ship || !ship.active || !ship.shield) return;
+
+		if (ship.shieldHealth <= 0) {
+			ship.shield.destroy();
+			ship.shield = null;
+			return;
+		}
+		let shipX = ship.x;
+		let shipY = ship.y;
+		ship.shield.setPosition(shipX, shipY);
+	}
+
 
 	// ========== HEALTH BAR CODE START ==========
 	// Create health bar for player or convoy ship
@@ -594,6 +621,17 @@ class SpaceScene extends Phaser.Scene {
 	updateShipHealth(ship, damage) {
 		if (!ship || !ship.active || ship.health <= 0) return;
 		
+		if (ship.shield) {
+			ship.shieldHealth -= damage;
+			if (ship.shieldHealth < 0) ship.shieldHealth = 0;
+			ship.shield.setTint(0xff0000);
+			this.time.delayedCall(100, () => {
+				if (ship.shield && ship.shield.active) {
+					ship.shield.clearTint();
+				}
+			});
+			return;
+		}
 		ship.health -= damage;
 		if (ship.health < 0) ship.health = 0;
 		
@@ -1303,9 +1341,12 @@ class SpaceScene extends Phaser.Scene {
             });
         }
         
-        // Update health bar positions every frame
+        // Update health bar and shield positions every frame
         if (this.ship && this.ship.active) {
             this.updateHealthBar(this.ship);
+			if (this.ship.shield) {
+				this.UpdateShield(this.ship);
+			}
         }
         if (this.convoys) {
             this.convoys.children.entries.forEach(convoyShip => {
