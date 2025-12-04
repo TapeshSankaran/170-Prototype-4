@@ -179,7 +179,6 @@ class SpaceScene extends Phaser.Scene {
 		this.highScore = 0;
 		this.score = 0;
 		this.wave = 1;
-		this.timeLeft = 120000;
 		this.scrollSpeed = 0;
 		this.scrollTotal = 0;
 		this.canMove = true;
@@ -328,11 +327,11 @@ class SpaceScene extends Phaser.Scene {
 		var wConvoy3 = this.make.image(this.assetConfig(convoyUI, uiHeight + 5, "convoyForm", 0, .75, .15))
 		var wConvoy4 = this.make.image(this.assetConfig(convoyUI - 5, uiHeight + 10, "convoyForm", 0, .75, .15))
 		// Line
-		var lConvoy1 = this.make.image(this.assetConfig(convoyUI - 65, uiHeight - 20, "convoyForm", 0, .75, .15))
-		var lConvoy2 = this.make.image(this.assetConfig(convoyUI - 65, uiHeight - 10, "convoyForm", 0, .75, .15))
-		var lShip = this.make.image(this.assetConfig(convoyUI - 65, uiHeight, "shipForm", 0, .75, .15))
-		var lConvoy3 = this.make.image(this.assetConfig(convoyUI - 65, uiHeight + 10, "convoyForm", 0, .75, .15))
-		var lConvoy4 = this.make.image(this.assetConfig(convoyUI - 65, uiHeight + 20, "convoyForm", 0, .75, .15))
+		var lConvoy1 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight - 20, "convoyForm", 0, .75, .15))
+		var lConvoy2 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight - 10, "convoyForm", 0, .75, .15))
+		var lShip = this.make.image(this.assetConfig(convoyUI - 68, uiHeight, "shipForm", 0, .75, .15))
+		var lConvoy3 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight + 10, "convoyForm", 0, .75, .15))
+		var lConvoy4 = this.make.image(this.assetConfig(convoyUI - 68, uiHeight + 20, "convoyForm", 0, .75, .15))
 		//Shield
 		var sConvoy1 = this.make.image(this.assetConfig(convoyUI, uiHeight - 85, "convoyForm", 0, .75, .15))
 		var sConvoy2 = this.make.image(this.assetConfig(convoyUI - 10, uiHeight - 75, "convoyForm", 0, .75, .15))
@@ -373,7 +372,7 @@ class SpaceScene extends Phaser.Scene {
 			align: 'center'
 		}).setOrigin(0.5, 0.5);
 
-		this.timeText = this.add.text(width / 2, 110, 'time', {
+		this.timeText = this.add.text(width / 2, 110, 'High Score 0' + this.highScore, {
 			fontSize: 32,
 			color: '#FFCD3D',
 			align: 'center'
@@ -452,7 +451,6 @@ class SpaceScene extends Phaser.Scene {
 	reinitialize() {
 		this.score = 0;
 		this.wave = 1;
-		this.timeLeft = 120000;
 		this.canMove = true;
 		this.over = false;
 		this.midPoint = false;
@@ -1187,6 +1185,8 @@ class SpaceScene extends Phaser.Scene {
 
 		if (this.enter.isDown && this.ship.x > 50 && this.over) {
 			this.formation = 'wedge';
+			this.ending.stop();
+			this.waveSound.play();
 			this.scene.restart();
         }
 
@@ -1395,8 +1395,7 @@ class SpaceScene extends Phaser.Scene {
 		let maxShootTime = 1000; // Cap at 1 second
 		let calculatedShootTime = Math.min(baseShootTime + waveShootPenalty, maxShootTime);
 		
-		// Emergency mode override (last 25 seconds)
-		//if (this.timeLeft < 25000) {
+		// Emergency mode override (When player ship is under 35 health)
 		if (this.ship.health < 35) {
 			this.shootTime = Math.min(calculatedShootTime, 250);
 			this.speed = 20;
@@ -1512,19 +1511,13 @@ class SpaceScene extends Phaser.Scene {
 			}
 		});
 
-		//if (this.timeLeft >= 0)
-			//this.timeLeft = this.timeBuf - this.game.getTime();
-
-		//if (!this.over)
-		//	this.timeText.setText(Math.trunc(this.timeLeft / 1000));
-
 		this.scoreText.setText("Score " + this.score);
 
-		if (this.scrollSpeed < this.speed && this.timeLeft > 0 && !this.over) this.scrollSpeed += 0.1;
+		if (this.scrollSpeed < this.speed && !this.over) this.scrollSpeed += 0.1;
 
 		this.bg.tilePositionX += this.scrollSpeed;
 
-		if (this.timeLeft <= 1000 || this.over) {
+		if (this.over) {
 			if (this.emerScreen.alpha > 0) {
 				this.emerScreen.alpha -= 0.001;
 			}
