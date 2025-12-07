@@ -278,6 +278,18 @@ class SpaceScene extends Phaser.Scene {
 		this.load.image('ufoy', 'UFO/PNG/shipYellow_manned.png');
 		this.load.image('ufod', 'UFO/PNG/laserBlue_burst.png');
 		this.load.image('red', 'red.png');
+		this.load.image('satellite1', 'OBSTACLES/SATELLITE/spaceStation_017.png');
+		this.load.image('satellite2', 'OBSTACLES/SATELLITE/spaceStation_020.png');
+		this.load.image('satellite3', 'OBSTACLES/SATELLITE/spaceStation_026.png');
+		this.load.image('lgmeteor', 'OBSTACLES/METEOR/spaceMeteors_large.png');
+		this.load.image('medmeteor1', 'OBSTACLES/METEOR/meteorBrown_medium1.png');
+		this.load.image('medmeteor2', 'OBSTACLES/METEOR/meteorBrown_medium2.png');
+		this.load.image('medmeteor3', 'OBSTACLES/METEOR/meteorBrown_medium3.png');
+		this.load.image('medmeteor4', 'OBSTACLES/METEOR/meteorBrown_medium4.png');
+		this.load.image('smmeteor1', 'OBSTACLES/METEOR/meteorBrown_small1.png');
+		this.load.image('smmeteor2', 'OBSTACLES/METEOR/meteorBrown_small2.png');
+		this.load.image('smmeteor3', 'OBSTACLES/METEOR/meteorBrown_small3.png');
+		this.load.image('smmeteor4', 'OBSTACLES/METEOR/meteorBrown_small4.png');
 		this.load.image('arrowkey', 'UI/keyboard_arrow_up_outline.png');
 		this.load.image('shipForm', 'UI/steamdeck_trackpad.png');
 		this.load.image('convoyForm', 'UI/steamdeck_trackpad_outline.png');
@@ -370,6 +382,11 @@ class SpaceScene extends Phaser.Scene {
 		let uiHeight = height - 90;
 		let convoyUI = width - 180;
 		let shipUI = 285;
+
+		// ======= TEST METEOR + SATELLITE SPAWN ======
+		var mediumMeteor = this.make.image(this.assetConfig(1400, 250, "medmeteor1", 0, 1, .75))
+		var largeMeteor = this.make.image(this.assetConfig(600, 500, "lgmeteor", 0, 1, .75))
+		var satellite = this.make.image(this.assetConfig(900, 100, "satellite2", 320, 1, 1))
 
 		// UI for Convoy Controls
 		var convoyGuide = this.make.image(this.assetConfig(convoyUI - 125, uiHeight, "convoyBlue", 0, .5, .5));
