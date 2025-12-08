@@ -93,6 +93,91 @@ class ConvoyLaserGroup extends Phaser.Physics.Arcade.Group
 }
 // ========== CONVOY CODE END ==========
 
+// ========== OBSTACLES CODE START ==========
+// Asteroid class - can be broken down by player/convoy bullets
+class Asteroid extends Phaser.Physics.Arcade.Sprite {
+	constructor(scene, x, y, size) {
+		// size: 'large', 'medium', 'small'
+		let imageKey = 'lgmeteor';
+		if (size === 'medium') {
+			imageKey = 'medmeteor' + Phaser.Math.Between(1, 4);
+		} else if (size === 'small') {
+			imageKey = 'smmeteor' + Phaser.Math.Between(1, 4);
+		}
+		
+		super(scene, x, y, imageKey);
+		this.size = size;
+		this.health = size === 'large' ? 3 : (size === 'medium' ? 2 : 1);
+		this.maxHealth = this.health;
+		this.flashTimer = 0;
+		this.scene = scene;
+		
+		// Set scale based on size
+		if (size === 'large') {
+			this.setScale(1.0);
+		} else if (size === 'medium') {
+			this.setScale(0.6);
+		} else {
+			this.setScale(0.3);
+		}
+	}
+	
+	takeDamage() {
+		this.health--;
+		// Flash white when damaged
+		this.flashTimer = 300; // Flash for 300ms
+		this.setTint(0xffffff);
+		
+		if (this.health <= 0) {
+			// Break down or destroy
+			if (this.size === 'large') {
+				// Break into 2-3 medium asteroids
+				let count = Phaser.Math.Between(2, 3);
+				for (let i = 0; i < count; i++) {
+					let angle = (Math.PI * 2 / count) * i + Phaser.Math.Between(-0.5, 0.5);
+					let offsetX = Math.cos(angle) * 30;
+					let offsetY = Math.sin(angle) * 30;
+					this.scene.spawnAsteroid(this.x + offsetX, this.y + offsetY, 'medium');
+				}
+			} else if (this.size === 'medium') {
+				// Break into 2-3 small asteroids
+				let count = Phaser.Math.Between(2, 3);
+				for (let i = 0; i < count; i++) {
+					let angle = (Math.PI * 2 / count) * i + Phaser.Math.Between(-0.5, 0.5);
+					let offsetX = Math.cos(angle) * 20;
+					let offsetY = Math.sin(angle) * 20;
+					this.scene.spawnAsteroid(this.x + offsetX, this.y + offsetY, 'small');
+				}
+			}
+			// Small asteroids just disappear
+			this.destroy();
+		}
+	}
+	
+	update(time, delta) {
+		if (this.flashTimer > 0) {
+			this.flashTimer -= delta;
+			if (this.flashTimer <= 0) {
+				this.clearTint();
+				this.flashTimer = 0;
+			}
+		}
+	}
+}
+
+// Satellite class - unbreakable wall obstacle
+class Satellite extends Phaser.Physics.Arcade.Sprite {
+	constructor(scene, x, y) {
+		let imageKey = 'satellite' + Phaser.Math.Between(1, 3);
+		super(scene, x, y, imageKey);
+		this.scene = scene;
+		this.setScale(0.8);
+		// Random rotation
+		this.rotation = Phaser.Math.Between(0, Math.PI * 2);
+	}
+}
+// ========== OBSTACLES CODE END ==========
+
 class UFOLaserGroup extends Phaser.Physics.Arcade.Group {
 	constructor(scene) {
 		super(scene.physics.world, scene);
@@ -261,6 +346,14 @@ class SpaceScene extends Phaser.Scene {
 		this.poweredUpEffect;
 		this.poweredUp = false;
 		// ========== POWER-UP CODE END ==========
+		
+		// ========== OBSTACLES CODE START ==========
+		this.asteroids = null;
+		this.satellites = null;
+		this.asteroidSpawnTimer = null;
+		this.satelliteSpawnTimer = null;
+		this.obstacleSpeed = -150; // Move left across screen
+		// ========== OBSTACLES CODE END ==========
 	}
 
 	preload() {
@@ -505,6 +598,21 @@ class SpaceScene extends Phaser.Scene {
 		// Start spawning power-ups periodically
 		this.startPowerUpSpawning();
 		// ========== POWER-UP CODE END ==========
+		
+		// ========== OBSTACLES CODE START ==========
+		// Create obstacle groups
+		this.asteroids = this.physics.add.group({
+			classType: Asteroid,
+			maxSize: 100
+		});
+		this.satellites = this.physics.add.group({
+			classType: Satellite,
+			maxSize: 50
+		});
+		
+		// Start spawning obstacles
+		this.startObstacleSpawning();
+		// ========== OBSTACLES CODE END ==========
 	}
 
 	assetConfig(imgX, imgY, imgKey, imgAngle = 0, imgAlpha = 1, imgScale = .75) {
@@ -570,6 +678,23 @@ class SpaceScene extends Phaser.Scene {
 			this.powerUpSpawnTimer.remove();
 		}
 		// ========== POWER-UP CODE END ==========
+		
+		// ========== OBSTACLES CODE START ==========
+		// Reset obstacle timers
+		if (this.asteroidSpawnTimer) {
+			this.asteroidSpawnTimer.remove();
+		}
+		if (this.satelliteSpawnTimer) {
+			this.satelliteSpawnTimer.remove();
+		}
+		// Clear all obstacles
+		if (this.asteroids) {
+			this.asteroids.clear(true, true);
+		}
+		if (this.satellites) {
+			this.satellites.clear(true, true);
+		}
+		// ========== OBSTACLES CODE END ==========
 	}
 
 	addShip() {
@@ -1396,6 +1521,116 @@ class SpaceScene extends Phaser.Scene {
         });
     }
     // ========== POWER-UP CODE END ==========
+    
+    // ========== OBSTACLES CODE START ==========
+    // Start spawning obstacles periodically
+    startObstacleSpawning() {
+        // Spawn first asteroid after 3 seconds
+        this.time.delayedCall(3000, () => {
+            this.spawnAsteroid();
+            // Continue spawning asteroids every 4-6 seconds
+            this.scheduleNextAsteroid();
+        });
+        
+        // Spawn first satellite after 5 seconds
+        this.time.delayedCall(5000, () => {
+            this.spawnSatellite();
+            // Continue spawning satellites every 8-12 seconds
+            this.scheduleNextSatellite();
+        });
+    }
+    
+    scheduleNextAsteroid() {
+        if (this.over) return;
+        let delay = Phaser.Math.Between(4000, 6000);
+        this.asteroidSpawnTimer = this.time.delayedCall(delay, () => {
+            this.spawnAsteroid();
+            this.scheduleNextAsteroid();
+        });
+    }
+    
+    scheduleNextSatellite() {
+        if (this.over) return;
+        let delay = Phaser.Math.Between(8000, 12000);
+        this.satelliteSpawnTimer = this.time.delayedCall(delay, () => {
+            this.spawnSatellite();
+            this.scheduleNextSatellite();
+        });
+    }
+    
+    // Spawn an asteroid
+    spawnAsteroid(x = null, y = null, size = null) {
+        if (this.over) return;
+        
+        let width = this.cameras.main.width;
+        let height = this.cameras.main.height;
+        
+        // If x, y, and size are provided, this is a breakdown spawn
+        if (x !== null && y !== null && size !== null) {
+            let asteroid = new Asteroid(this, x, y, size);
+            this.asteroids.add(asteroid);
+            this.physics.add.existing(asteroid);
+            asteroid.body.setSize(asteroid.width * 0.8, asteroid.height * 0.8);
+            
+            // Add random velocity for breakup effect
+            let angle = Phaser.Math.Between(0, Math.PI * 2);
+            let speed = Phaser.Math.Between(50, 150);
+            asteroid.body.setVelocity(
+                Math.cos(angle) * speed + this.obstacleSpeed,
+                Math.sin(angle) * speed
+            );
+            asteroid.body.setAngularVelocity(Phaser.Math.Between(-100, 100));
+            return asteroid;
+        }
+        
+        // Normal spawn - spawn off screen to the right
+        let spawnX = width + 50;
+        let spawnY = Phaser.Math.Between(100, height - 100);
+        
+        // Random size (70% small, 20% medium, 10% large)
+        if (!size) {
+            let rand = Phaser.Math.Between(1, 100);
+            if (rand <= 70) {
+                size = 'small';
+            } else if (rand <= 90) {
+                size = 'medium';
+            } else {
+                size = 'large';
+            }
+        }
+        
+        let asteroid = new Asteroid(this, spawnX, spawnY, size);
+        this.asteroids.add(asteroid);
+        this.physics.add.existing(asteroid);
+        asteroid.body.setSize(asteroid.width * 0.8, asteroid.height * 0.8);
+        asteroid.body.setVelocity(this.obstacleSpeed, 0);
+        asteroid.body.setAngularVelocity(Phaser.Math.Between(-50, 50));
+        
+        return asteroid;
+    }
+    
+    // Spawn a satellite
+    spawnSatellite() {
+        if (this.over) return;
+        
+        let width = this.cameras.main.width;
+        let height = this.cameras.main.height;
+        
+        // Spawn slightly off screen from top or bottom, protruding into playable area
+        let spawnFromTop = Phaser.Math.Between(0, 1) === 0;
+        let spawnX = Phaser.Math.Between(width * 0.7, width - 50);
+        let spawnY = spawnFromTop ? -30 : height + 30; // Slightly off screen
+        
+        let satellite = new Satellite(this, spawnX, spawnY);
+        this.satellites.add(satellite);
+        this.physics.add.existing(satellite);
+        satellite.body.setSize(satellite.width * 0.9, satellite.height * 0.9);
+        satellite.body.setVelocity(this.obstacleSpeed * 0.7, 0); // Move slower than asteroids
+        satellite.body.setImmovable(false); // Satellites move with the screen
+        
+        return satellite;
+    }
+    // ========== OBSTACLES CODE END ==========
 
 	fireBullet() {
 		this.laserGroup.fireBullet(this.ship.x, this.ship.y - 20);
@@ -1786,6 +2021,197 @@ class SpaceScene extends Phaser.Scene {
             });
         }
         // ========== COLLISION DAMAGE CODE END ==========
+        
+        // ========== OBSTACLES CODE START ==========
+        // Update asteroid flash timers (delta time from scene)
+        let delta = 16; // Default frame time
+        if (this.asteroids) {
+            this.asteroids.children.entries.forEach(asteroid => {
+                if (asteroid && asteroid.active && asteroid.flashTimer !== undefined) {
+                    if (asteroid.flashTimer > 0) {
+                        asteroid.flashTimer -= delta;
+                        if (asteroid.flashTimer <= 0) {
+                            asteroid.clearTint();
+                            asteroid.flashTimer = 0;
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Clean up obstacles that are off screen
+        if (this.asteroids) {
+            this.asteroids.children.entries.forEach(asteroid => {
+                if (asteroid && asteroid.active && asteroid.x < -100) {
+                    asteroid.destroy();
+                }
+            });
+        }
+        if (this.satellites) {
+            this.satellites.children.entries.forEach(satellite => {
+                if (satellite && satellite.active && satellite.x < -100) {
+                    satellite.destroy();
+                }
+            });
+        }
+        
+        // Player/convoy bullets hitting asteroids (break down)
+        if (this.asteroids && this.laserGroup) {
+            this.laserGroup.children.iterate(laser => {
+                if (!laser || !laser.active) return;
+                this.asteroids.children.entries.forEach(asteroid => {
+                    if (!asteroid || !asteroid.active) return;
+                    if (this.physics.overlap(laser, asteroid)) {
+                        asteroid.takeDamage();
+                        laser.kill();
+                    }
+                });
+            });
+        }
+        
+        // Convoy bullets hitting asteroids
+        if (this.asteroids && this.convoyLaserGroup) {
+            this.convoyLaserGroup.children.iterate(convoyLaser => {
+                if (!convoyLaser || !convoyLaser.active) return;
+                this.asteroids.children.entries.forEach(asteroid => {
+                    if (!asteroid || !asteroid.active) return;
+                    if (this.physics.overlap(convoyLaser, asteroid)) {
+                        asteroid.takeDamage();
+                        convoyLaser.kill();
+                    }
+                });
+            });
+        }
+        
+        // Enemy bullets hitting asteroids (block bullets)
+        if (this.asteroids && this.ufoLaserGroup) {
+            this.ufoLaserGroup.children.iterate(ufoLaser => {
+                if (!ufoLaser || !ufoLaser.active) return;
+                this.asteroids.children.entries.forEach(asteroid => {
+                    if (!asteroid || !asteroid.active) return;
+                    if (this.physics.overlap(ufoLaser, asteroid)) {
+                        ufoLaser.kill(); // Block enemy fire
+                    }
+                });
+            });
+        }
+        
+        // All bullets hitting satellites (block all bullets)
+        if (this.satellites) {
+            // Player bullets
+            if (this.laserGroup) {
+                this.laserGroup.children.iterate(laser => {
+                    if (!laser || !laser.active) return;
+                    this.satellites.children.entries.forEach(satellite => {
+                        if (!satellite || !satellite.active) return;
+                        if (this.physics.overlap(laser, satellite)) {
+                            laser.kill();
+                        }
+                    });
+                });
+            }
+            
+            // Convoy bullets
+            if (this.convoyLaserGroup) {
+                this.convoyLaserGroup.children.iterate(convoyLaser => {
+                    if (!convoyLaser || !convoyLaser.active) return;
+                    this.satellites.children.entries.forEach(satellite => {
+                        if (!satellite || !satellite.active) return;
+                        if (this.physics.overlap(convoyLaser, satellite)) {
+                            convoyLaser.kill();
+                        }
+                    });
+                });
+            }
+            
+            // Enemy bullets
+            if (this.ufoLaserGroup) {
+                this.ufoLaserGroup.children.iterate(ufoLaser => {
+                    if (!ufoLaser || !ufoLaser.active) return;
+                    this.satellites.children.entries.forEach(satellite => {
+                        if (!satellite || !satellite.active) return;
+                        if (this.physics.overlap(ufoLaser, satellite)) {
+                            ufoLaser.kill();
+                        }
+                    });
+                });
+            }
+        }
+        
+        // Player/convoys touching asteroids (damage)
+        if (this.asteroids && this.ship && this.ship.active && !this.over) {
+            this.asteroids.children.entries.forEach(asteroid => {
+                if (!asteroid || !asteroid.active) return;
+                let dx = asteroid.x - this.ship.x;
+                let dy = asteroid.y - this.ship.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                let hitRadius = (this.ship.width + asteroid.width) * 0.4;
+                
+                if (distance < hitRadius) {
+                    // Player takes damage from asteroid
+                    this.updateShipHealth(this.ship, 20);
+                    // Asteroid is destroyed on contact
+                    asteroid.destroy();
+                }
+            });
+        }
+        
+        // Convoy ships touching asteroids
+        if (this.asteroids && this.convoys && !this.over) {
+            this.convoys.children.entries.forEach(convoyShip => {
+                if (!convoyShip || !convoyShip.active) return;
+                this.asteroids.children.entries.forEach(asteroid => {
+                    if (!asteroid || !asteroid.active) return;
+                    let dx = asteroid.x - convoyShip.x;
+                    let dy = asteroid.y - convoyShip.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    let hitRadius = (convoyShip.width + asteroid.width) * 0.4;
+                    
+                    if (distance < hitRadius) {
+                        // Convoy takes damage from asteroid
+                        this.updateShipHealth(convoyShip, 20);
+                        // Asteroid is destroyed on contact
+                        asteroid.destroy();
+                    }
+                });
+            });
+        }
+        
+        // Player/convoys touching satellites (damage)
+        if (this.satellites && this.ship && this.ship.active && !this.over) {
+            this.satellites.children.entries.forEach(satellite => {
+                if (!satellite || !satellite.active) return;
+                let dx = satellite.x - this.ship.x;
+                let dy = satellite.y - this.ship.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                let hitRadius = (this.ship.width + satellite.width) * 0.4;
+                
+                if (distance < hitRadius) {
+                    // Player takes damage from satellite
+                    this.updateShipHealth(this.ship, 25);
+                }
+            });
+        }
+        
+        // Convoy ships touching satellites
+        if (this.satellites && this.convoys && !this.over) {
+            this.convoys.children.entries.forEach(convoyShip => {
+                if (!convoyShip || !convoyShip.active) return;
+                this.satellites.children.entries.forEach(satellite => {
+                    if (!satellite || !satellite.active) return;
+                    let dx = satellite.x - convoyShip.x;
+                    let dy = satellite.y - convoyShip.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    let hitRadius = (convoyShip.width + satellite.width) * 0.4;
+                    
+                    if (distance < hitRadius) {
+                        // Convoy takes damage from satellite
+                        this.updateShipHealth(convoyShip, 25);
+                    }
+                });
+            });
+        }
+        // ========== OBSTACLES CODE END ==========
 
 		// ========== WAVE DIFFICULTY CODE START ==========
 		// Make player shooting slower as waves increase (harder difficulty)
