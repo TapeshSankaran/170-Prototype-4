@@ -1563,6 +1563,7 @@ class SpaceScene extends Phaser.Scene {
         // If x, y, and size are provided, this is a breakdown spawn
         if (x !== null && y !== null && size !== null) {
             let asteroid = new Asteroid(this, x, y, size);
+            this.asteroids.add(asteroid);
             this.physics.add.existing(asteroid);
             asteroid.body.setSize(asteroid.width * 0.8, asteroid.height * 0.8);
             
@@ -1574,10 +1575,6 @@ class SpaceScene extends Phaser.Scene {
                 Math.sin(angle) * speed
             );
             asteroid.body.setAngularVelocity(Phaser.Math.Between(-100, 100));
-            this.asteroids.add(asteroid);
-            // Make sure asteroid is visible and active
-            asteroid.setActive(true);
-            asteroid.setVisible(true);
             return asteroid;
         }
         
@@ -1598,14 +1595,11 @@ class SpaceScene extends Phaser.Scene {
         }
         
         let asteroid = new Asteroid(this, spawnX, spawnY, size);
+        this.asteroids.add(asteroid);
         this.physics.add.existing(asteroid);
         asteroid.body.setSize(asteroid.width * 0.8, asteroid.height * 0.8);
         asteroid.body.setVelocity(this.obstacleSpeed, 0);
         asteroid.body.setAngularVelocity(Phaser.Math.Between(-50, 50));
-        this.asteroids.add(asteroid);
-        // Make sure asteroid is visible and active
-        asteroid.setActive(true);
-        asteroid.setVisible(true);
         
         return asteroid;
     }
@@ -1623,14 +1617,11 @@ class SpaceScene extends Phaser.Scene {
         let spawnY = spawnFromTop ? -30 : height + 30; // Slightly off screen
         
         let satellite = new Satellite(this, spawnX, spawnY);
+        this.satellites.add(satellite);
         this.physics.add.existing(satellite);
         satellite.body.setSize(satellite.width * 0.9, satellite.height * 0.9);
         satellite.body.setVelocity(this.obstacleSpeed * 0.7, 0); // Move slower than asteroids
         satellite.body.setImmovable(false); // Satellites move with the screen
-        this.satellites.add(satellite);
-        // Make sure satellite is visible and active
-        satellite.setActive(true);
-        satellite.setVisible(true);
         
         return satellite;
     }
@@ -1784,12 +1775,8 @@ class SpaceScene extends Phaser.Scene {
 
 		if (this.enter.isDown && this.over) {
 			this.formation = 'wedge';
-			if (this.ending && this.ending.isPlaying) {
-				this.ending.stop();
-			}
-			if (this.waveSound) {
-				this.waveSound.play();
-			}
+			this.ending.stop();
+			this.waveSound.play();
 			this.scene.restart();
         }
 
@@ -2230,16 +2217,13 @@ class SpaceScene extends Phaser.Scene {
                     let dx = asteroid.x - ufo.x;
                     let dy = asteroid.y - ufo.y;
                     let distance = Math.sqrt(dx * dx + dy * dy);
-                    // Increased hit radius to prevent UFOs from passing through
-                    let hitRadius = (ufo.width + asteroid.width) * 0.5;
+                    let hitRadius = (ufo.width + asteroid.width) * 0.4;
                     
                     if (distance < hitRadius) {
                         // UFO is destroyed when hitting asteroid
                         ufo.destroy();
                         this.numUFOS--;
-                        if (this.boomSound) {
-                            this.boomSound.play();
-                        }
+                        this.boomSound.play();
                         let boom = this.add.image(ufo.x, ufo.y, 'ufod');
                         boom.scale *= 0.75;
                         boom.rotation += Phaser.Math.Between(45, 135);
@@ -2252,17 +2236,6 @@ class SpaceScene extends Phaser.Scene {
                         });
                         // Asteroid also takes damage
                         asteroid.takeDamage();
-                        
-                        // Check for wave completion
-                        if (this.numUFOS == 0) {
-                            this.waveSound.play();
-                            this.score += 500 * (0.5 * this.wave);
-                            this.wave++;
-                            const text = "Wave " + this.wave;
-                            this.waveText.setText(text);
-                            this.spawnUFO();
-                        }
-                        return; // Exit to avoid checking same UFO again
                     }
                 });
             });
@@ -2286,9 +2259,7 @@ class SpaceScene extends Phaser.Scene {
                         // UFO is destroyed when hitting satellite
                         ufo.destroy();
                         this.numUFOS--;
-                        if (this.boomSound) {
-                            this.boomSound.play();
-                        }
+                        this.boomSound.play();
                         let boom = this.add.image(ufo.x, ufo.y, 'ufod');
                         boom.scale *= 0.75;
                         boom.rotation += Phaser.Math.Between(45, 135);
@@ -2299,17 +2270,6 @@ class SpaceScene extends Phaser.Scene {
                             ease: 'Sine.easeOut',
                             duration: 500
                         });
-                        
-                        // Check for wave completion
-                        if (this.numUFOS == 0) {
-                            this.waveSound.play();
-                            this.score += 500 * (0.5 * this.wave);
-                            this.wave++;
-                            const text = "Wave " + this.wave;
-                            this.waveText.setText(text);
-                            this.spawnUFO();
-                        }
-                        return; // Exit to avoid checking same UFO again
                     }
                 });
             });
@@ -2413,8 +2373,6 @@ class SpaceScene extends Phaser.Scene {
 		
 		this.ufos.children.iterate(ufo => {
 			if (!ufo || !ufo.active) return;
-			// Skip convoy ships (allies)
-			if (ufo.getData && ufo.getData('isAlly')) return;
 			
 			// Reset aliens that get stuck way outside screen bounds
 			if (ufo.x < -margin || ufo.x > width + margin || 
@@ -2422,16 +2380,6 @@ class SpaceScene extends Phaser.Scene {
 				// Reset stuck alien by destroying it
 				ufo.destroy();
 				this.numUFOS--;
-				
-				// Check for wave completion
-				if (this.numUFOS == 0) {
-					this.waveSound.play();
-					this.score += 500 * (0.5 * this.wave);
-					this.wave++;
-					const text = "Wave " + this.wave;
-					this.waveText.setText(text);
-					this.spawnUFO();
-				}
 				return;
 			}
 			// ========== getting rid of glitching alien CODE END ==========
