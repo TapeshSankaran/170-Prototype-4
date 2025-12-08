@@ -122,7 +122,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
 		}
 	}
 	
-	takeDamage() {
+	asteroidDamage() {
 		this.health--;
 		// Flash white when damaged
 		this.flashTimer = 300; // Flash for 300ms
@@ -137,7 +137,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
 					let angle = (Math.PI * 2 / count) * i + Phaser.Math.Between(-0.5, 0.5);
 					let offsetX = Math.cos(angle) * 30;
 					let offsetY = Math.sin(angle) * 30;
-					this.scene.spawnAsteroid(this.x + offsetX, this.y + offsetY, 'medium');
+					this.spawnAsteroid(this.x + offsetX, this.y + offsetY, 'medium');
 				}
 			} else if (this.size === 'medium') {
 				// Break into 2-3 small asteroids
@@ -146,7 +146,7 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
 					let angle = (Math.PI * 2 / count) * i + Phaser.Math.Between(-0.5, 0.5);
 					let offsetX = Math.cos(angle) * 20;
 					let offsetY = Math.sin(angle) * 20;
-					this.scene.spawnAsteroid(this.x + offsetX, this.y + offsetY, 'small');
+					this.spawnAsteroid(this.x + offsetX, this.y + offsetY, 'small');
 				}
 			}
 			// Small asteroids just disappear
@@ -684,10 +684,10 @@ class SpaceScene extends Phaser.Scene {
 		}
 		// Clear all obstacles
 		if (this.asteroids) {
-			this.asteroids.clear(true, true);
+			this.asteroids.destroy();
 		}
 		if (this.satellites) {
-			this.satellites.clear(true, true);
+			this.satellites.destroy();
 		}
 		// ========== OBSTACLES CODE END ==========
 	}
@@ -1562,10 +1562,20 @@ class SpaceScene extends Phaser.Scene {
         
         // If x, y, and size are provided, this is a breakdown spawn
         if (x !== null && y !== null && size !== null) {
-            let asteroid = new Asteroid(this, x, y, size);
+            
+			let imageKey = 'lgmeteor';
+			if (size === 'medium') {
+				imageKey = 'medmeteor' + Phaser.Math.Between(1, 4);
+			} else if (size === 'small') {
+				imageKey = 'smmeteor' + Phaser.Math.Between(1, 4);
+			}
+			let asteroid = this.make.image(this.assetConfig(x, y, imageKey, 0, 1, .75))
+			asteroid.health = size === 'large' ? 15 : (size === 'medium' ? 10 : 5);
+			asteroid.maxHealth = this.health;
+			asteroid.flashTimer = 0;
+
             this.asteroids.add(asteroid);
             this.physics.add.existing(asteroid);
-            asteroid.body.setSize(asteroid.width * 0.8, asteroid.height * 0.8);
             
             // Add random velocity for breakup effect
             let angle = Phaser.Math.Between(0, Math.PI * 2);
@@ -1594,15 +1604,59 @@ class SpaceScene extends Phaser.Scene {
             }
         }
         
-        let asteroid = new Asteroid(this, spawnX, spawnY, size);
+        let imageKey = 'lgmeteor';
+		if (size === 'medium') {
+			imageKey = 'medmeteor' + Phaser.Math.Between(1, 4);
+		} else if (size === 'small') {
+			imageKey = 'smmeteor' + Phaser.Math.Between(1, 4);
+		}
+		let asteroid = this.make.image(this.assetConfig(spawnX, spawnY, imageKey, Phaser.Math.Between(0, Math.PI * 2), 1, .75))
+		asteroid.health = size === 'large' ? 15 : (size === 'medium' ? 10 : 5);
+		asteroid.maxHealth = this.health;
+		asteroid.flashTimer = 0;
         this.asteroids.add(asteroid);
         this.physics.add.existing(asteroid);
-        asteroid.body.setSize(asteroid.width * 0.8, asteroid.height * 0.8);
         asteroid.body.setVelocity(this.obstacleSpeed, 0);
         asteroid.body.setAngularVelocity(Phaser.Math.Between(-50, 50));
         
         return asteroid;
     }
+
+	asteroidDamage(asteroid) {
+		asteroid.health--;
+		// Flash white when damaged
+		asteroid.setTintFill(0xffffff);
+			this.time.delayedCall(100, () => {
+				if (asteroid && asteroid.active) {
+					asteroid.clearTint();
+				}
+			});
+		
+		if (asteroid.health <= 0) {
+			// Break down or destroy
+			if (asteroid.size === 'large') {
+				// Break into 2-3 medium asteroids
+				let count = Phaser.Math.Between(2, 3);
+				for (let i = 0; i < count; i++) {
+					let angle = (Math.PI * 2 / count) * i + Phaser.Math.Between(-0.5, 0.5);
+					let offsetX = Math.cos(angle) * 30;
+					let offsetY = Math.sin(angle) * 30;
+					this.spawnAsteroid(this.x + offsetX, this.y + offsetY, 'medium');
+				}
+			} else if (this.size === 'medium') {
+				// Break into 2-3 small asteroids
+				let count = Phaser.Math.Between(2, 3);
+				for (let i = 0; i < count; i++) {
+					let angle = (Math.PI * 2 / count) * i + Phaser.Math.Between(-0.5, 0.5);
+					let offsetX = Math.cos(angle) * 20;
+					let offsetY = Math.sin(angle) * 20;
+					this.spawnAsteroid(this.x + offsetX, this.y + offsetY, 'small');
+				}
+			}
+			// Small asteroids just disappear
+			asteroid.destroy();
+		}
+	}
     
     // Spawn a satellite
     spawnSatellite() {
@@ -1613,10 +1667,11 @@ class SpaceScene extends Phaser.Scene {
         
         // Spawn slightly off screen from top or bottom, protruding into playable area
         let spawnFromTop = Phaser.Math.Between(0, 1) === 0;
-        let spawnX = Phaser.Math.Between(width * 0.7, width - 50);
+        let spawnX = Phaser.Math.Between(width, width * 5);
         let spawnY = spawnFromTop ? -30 : height + 30; // Slightly off screen
         
-        let satellite = new Satellite(this, spawnX, spawnY);
+        let imageKey = 'satellite' + Phaser.Math.Between(1, 3);
+		let satellite = this.make.image(this.assetConfig(spawnX, spawnY, imageKey, 320, 1, 1))
         this.satellites.add(satellite);
         this.physics.add.existing(satellite);
         satellite.body.setSize(satellite.width * 0.9, satellite.height * 0.9);
@@ -2055,7 +2110,7 @@ class SpaceScene extends Phaser.Scene {
                 this.asteroids.children.entries.forEach(asteroid => {
                     if (!asteroid || !asteroid.active) return;
                     if (this.physics.overlap(laser, asteroid)) {
-                        asteroid.takeDamage();
+                        this.asteroidDamage(asteroid);
                         laser.kill();
                     }
                 });
@@ -2069,7 +2124,7 @@ class SpaceScene extends Phaser.Scene {
                 this.asteroids.children.entries.forEach(asteroid => {
                     if (!asteroid || !asteroid.active) return;
                     if (this.physics.overlap(convoyLaser, asteroid)) {
-                        asteroid.takeDamage();
+                        this.asteroidDamage(asteroid);
                         convoyLaser.kill();
                     }
                 });
@@ -2206,7 +2261,7 @@ class SpaceScene extends Phaser.Scene {
         }
         
         // UFO collision with asteroids (UFOs are blocked/destroyed)
-        if (this.asteroids && this.ufos && !this.over) {
+        /*if (this.asteroids && this.ufos && !this.over) {
             this.ufos.children.iterate(ufo => {
                 if (!ufo || !ufo.active) return;
                 // Skip convoy ships (allies)
@@ -2235,7 +2290,7 @@ class SpaceScene extends Phaser.Scene {
                             duration: 500
                         });
                         // Asteroid also takes damage
-                        asteroid.takeDamage();
+                        this.asteroidDamage(asteroid);
                     }
                 });
             });
@@ -2273,7 +2328,7 @@ class SpaceScene extends Phaser.Scene {
                     }
                 });
             });
-        }
+        } */
         // ========== OBSTACLES CODE END ==========
 
 		// ========== WAVE DIFFICULTY CODE START ==========
