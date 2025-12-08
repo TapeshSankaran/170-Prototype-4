@@ -1570,8 +1570,9 @@ class SpaceScene extends Phaser.Scene {
 				imageKey = 'smmeteor' + Phaser.Math.Between(1, 4);
 			}
 			let asteroid = this.make.image(this.assetConfig(x, y, imageKey, 0, 1, .75))
-			asteroid.health = size === 'large' ? 15 : (size === 'medium' ? 10 : 5);
+			asteroid.health = size === 'large' ? 10 : (size === 'medium' ? 5 : 3);
 			asteroid.maxHealth = this.health;
+			asteroid.size = size;
 			asteroid.flashTimer = 0;
 
             this.asteroids.add(asteroid);
@@ -1611,8 +1612,9 @@ class SpaceScene extends Phaser.Scene {
 			imageKey = 'smmeteor' + Phaser.Math.Between(1, 4);
 		}
 		let asteroid = this.make.image(this.assetConfig(spawnX, spawnY, imageKey, Phaser.Math.Between(0, Math.PI * 2), 1, .75))
-		asteroid.health = size === 'large' ? 15 : (size === 'medium' ? 10 : 5);
+		asteroid.health = size === 'large' ? 10 : (size === 'medium' ? 5 : 3);
 		asteroid.maxHealth = this.health;
+		asteroid.size = size;
 		asteroid.flashTimer = 0;
         this.asteroids.add(asteroid);
         this.physics.add.existing(asteroid);
@@ -1633,6 +1635,7 @@ class SpaceScene extends Phaser.Scene {
 			});
 		
 		if (asteroid.health <= 0) {
+			this.boomSound.play();
 			// Break down or destroy
 			if (asteroid.size === 'large') {
 				// Break into 2-3 medium asteroids
@@ -1641,16 +1644,16 @@ class SpaceScene extends Phaser.Scene {
 					let angle = (Math.PI * 2 / count) * i + Phaser.Math.Between(-0.5, 0.5);
 					let offsetX = Math.cos(angle) * 30;
 					let offsetY = Math.sin(angle) * 30;
-					this.spawnAsteroid(this.x + offsetX, this.y + offsetY, 'medium');
+					this.spawnAsteroid(asteroid.x + offsetX, asteroid.y + offsetY, 'medium');
 				}
-			} else if (this.size === 'medium') {
+			} else if (asteroid.size === 'medium') {
 				// Break into 2-3 small asteroids
 				let count = Phaser.Math.Between(2, 3);
 				for (let i = 0; i < count; i++) {
 					let angle = (Math.PI * 2 / count) * i + Phaser.Math.Between(-0.5, 0.5);
 					let offsetX = Math.cos(angle) * 20;
 					let offsetY = Math.sin(angle) * 20;
-					this.spawnAsteroid(this.x + offsetX, this.y + offsetY, 'small');
+					this.spawnAsteroid(asteroid.x + offsetX, asteroid.y + offsetY, 'small');
 				}
 			}
 			// Small asteroids just disappear
@@ -2090,14 +2093,14 @@ class SpaceScene extends Phaser.Scene {
         // Clean up obstacles that are off screen
         if (this.asteroids) {
             this.asteroids.children.entries.forEach(asteroid => {
-                if (asteroid && asteroid.active && asteroid.x < -100) {
+                if (asteroid && asteroid.active && asteroid.x < -150) {
                     asteroid.destroy();
                 }
             });
         }
         if (this.satellites) {
             this.satellites.children.entries.forEach(satellite => {
-                if (satellite && satellite.active && satellite.x < -100) {
+                if (satellite && satellite.active && satellite.x < -200) {
                     satellite.destroy();
                 }
             });
@@ -2200,6 +2203,7 @@ class SpaceScene extends Phaser.Scene {
                     this.updateShipHealth(this.ship, 20);
                     // Asteroid is destroyed on contact
                     asteroid.destroy();
+					this.boomSound.play();
                 }
             });
         }
@@ -2220,6 +2224,7 @@ class SpaceScene extends Phaser.Scene {
                         this.updateShipHealth(convoyShip, 20);
                         // Asteroid is destroyed on contact
                         asteroid.destroy();
+						this.boomSound.play();
                     }
                 });
             });
