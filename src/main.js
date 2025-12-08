@@ -1626,8 +1626,7 @@ class SpaceScene extends Phaser.Scene {
 		asteroid.health--;
 		console.log(asteroid.health)
 		// Flash white when damaged
-		asteroid.flashTimer = 300; // Flash for 300ms
-		asteroid.setTint(0xffffff);
+		asteroid.setTintFill(0xffffff);
 			this.time.delayedCall(100, () => {
 				if (asteroid && asteroid.active) {
 					asteroid.clearTint();
@@ -2263,7 +2262,7 @@ class SpaceScene extends Phaser.Scene {
         }
         
         // UFO collision with asteroids (UFOs are blocked/destroyed)
-        if (this.asteroids && this.ufos && !this.over) {
+        /*if (this.asteroids && this.ufos && !this.over) {
             this.ufos.children.iterate(ufo => {
                 if (!ufo || !ufo.active) return;
                 // Skip convoy ships (allies)
@@ -2330,7 +2329,7 @@ class SpaceScene extends Phaser.Scene {
                     }
                 });
             });
-        }
+        } */
         // ========== OBSTACLES CODE END ==========
 
 		// ========== WAVE DIFFICULTY CODE START ==========
