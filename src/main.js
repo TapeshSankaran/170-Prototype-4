@@ -1562,10 +1562,20 @@ class SpaceScene extends Phaser.Scene {
         
         // If x, y, and size are provided, this is a breakdown spawn
         if (x !== null && y !== null && size !== null) {
-            let asteroid = new Asteroid(this, x, y, size);
+            
+			let imageKey = 'lgmeteor';
+			if (size === 'medium') {
+				imageKey = 'medmeteor' + Phaser.Math.Between(1, 4);
+			} else if (size === 'small') {
+				imageKey = 'smmeteor' + Phaser.Math.Between(1, 4);
+			}
+			let asteroid = this.make.image(this.assetConfig(x, y, "imageKey", 0, 1, .75))
+			asteroid.health = size === 'large' ? 3 : (size === 'medium' ? 2 : 1);
+			asteroid.maxHealth = this.health;
+			asteroid.flashTimer = 0;
+
             this.asteroids.add(asteroid);
             this.physics.add.existing(asteroid);
-            asteroid.body.setSize(asteroid.width * 0.8, asteroid.height * 0.8);
             
             // Add random velocity for breakup effect
             let angle = Phaser.Math.Between(0, Math.PI * 2);
@@ -1594,10 +1604,15 @@ class SpaceScene extends Phaser.Scene {
             }
         }
         
-        let asteroid = new Asteroid(this, spawnX, spawnY, size);
+        let imageKey = 'lgmeteor';
+		if (size === 'medium') {
+			imageKey = 'medmeteor' + Phaser.Math.Between(1, 4);
+		} else if (size === 'small') {
+			imageKey = 'smmeteor' + Phaser.Math.Between(1, 4);
+		}
+		let asteroid = this.make.image(this.assetConfig(x, y, "imageKey", Phaser.Math.Between(0, Math.PI * 2), 1, .75))
         this.asteroids.add(asteroid);
         this.physics.add.existing(asteroid);
-        asteroid.body.setSize(asteroid.width * 0.8, asteroid.height * 0.8);
         asteroid.body.setVelocity(this.obstacleSpeed, 0);
         asteroid.body.setAngularVelocity(Phaser.Math.Between(-50, 50));
         
@@ -1616,7 +1631,8 @@ class SpaceScene extends Phaser.Scene {
         let spawnX = Phaser.Math.Between(width * 0.7, width - 50);
         let spawnY = spawnFromTop ? -30 : height + 30; // Slightly off screen
         
-        let satellite = new Satellite(this, spawnX, spawnY);
+        let imageKey = 'satellite' + Phaser.Math.Between(1, 3);
+		let satellite = this.make.image(this.assetConfig(spawnX, spawnY, imageKey, 320, 1, 1))
         this.satellites.add(satellite);
         this.physics.add.existing(satellite);
         satellite.body.setSize(satellite.width * 0.9, satellite.height * 0.9);
