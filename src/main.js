@@ -98,10 +98,16 @@ class ConvoyLaserGroup extends Phaser.Physics.Arcade.Group
 class Asteroid extends Phaser.Physics.Arcade.Sprite {
 	constructor(scene, x, y, size) {
 		// size: 'large', 'medium', 'small'
+		// All meteor assets from OBSTACLES/METEOR folder are used:
+		// - Large: spaceMeteors_large.png (lgmeteor)
+		// - Medium: meteorBrown_medium1-4.png (medmeteor1-4) - randomly selected
+		// - Small: meteorBrown_small1-4.png (smmeteor1-4) - randomly selected
 		let imageKey = 'lgmeteor';
 		if (size === 'medium') {
+			// Randomly select from 4 medium meteor variants
 			imageKey = 'medmeteor' + Phaser.Math.Between(1, 4);
 		} else if (size === 'small') {
+			// Randomly select from 4 small meteor variants
 			imageKey = 'smmeteor' + Phaser.Math.Between(1, 4);
 		}
 		
@@ -112,13 +118,13 @@ class Asteroid extends Phaser.Physics.Arcade.Sprite {
 		this.flashTimer = 0;
 		this.scene = scene;
 		
-		// Set scale based on size
+		// Set scale based on size - make asteroids smaller to keep convoys safe
 		if (size === 'large') {
-			this.setScale(1.0);
+			this.setScale(0.7); // Reduced from 1.0
 		} else if (size === 'medium') {
-			this.setScale(0.6);
+			this.setScale(0.5); // Reduced from 0.6
 		} else {
-			this.setScale(0.3);
+			this.setScale(0.35); // Slightly larger from 0.3 for visibility
 		}
 	}
 	
@@ -1520,11 +1526,13 @@ class SpaceScene extends Phaser.Scene {
     // ========== OBSTACLES CODE START ==========
     // Start spawning obstacles periodically
     startObstacleSpawning() {
-        // Spawn first asteroid after 3 seconds
-        this.time.delayedCall(3000, () => {
-            this.spawnAsteroid();
-            // Continue spawning asteroids every 4-6 seconds
-            this.scheduleNextAsteroid();
+        // Spawn first asteroid after 1 second (reduced from 3 for faster testing)
+        this.time.delayedCall(1000, () => {
+            if (!this.over && this.asteroids) {
+                this.spawnAsteroid();
+                // Continue spawning asteroids every 4-6 seconds
+                this.scheduleNextAsteroid();
+            }
         });
         
         // Spawn first satellite after 5 seconds
@@ -1536,11 +1544,13 @@ class SpaceScene extends Phaser.Scene {
     }
     
     scheduleNextAsteroid() {
-        if (this.over) return;
+        if (this.over || !this.canMove) return;
         let delay = Phaser.Math.Between(4000, 6000);
         this.asteroidSpawnTimer = this.time.delayedCall(delay, () => {
-            this.spawnAsteroid();
-            this.scheduleNextAsteroid();
+            if (!this.over && this.canMove && this.asteroids) {
+                this.spawnAsteroid();
+                this.scheduleNextAsteroid();
+            }
         });
     }
     
@@ -1555,7 +1565,7 @@ class SpaceScene extends Phaser.Scene {
     
     // Spawn an asteroid
     spawnAsteroid(x = null, y = null, size = null) {
-        if (this.over) return;
+        if (this.over || !this.asteroids || !this.canMove) return;
         
         let width = this.cameras.main.width;
         let height = this.cameras.main.height;
@@ -1563,6 +1573,9 @@ class SpaceScene extends Phaser.Scene {
         // If x, y, and size are provided, this is a breakdown spawn
         if (x !== null && y !== null && size !== null) {
             let asteroid = new Asteroid(this, x, y, size);
+            // Add to scene display list first
+            this.add.existing(asteroid);
+            // Then add physics
             this.physics.add.existing(asteroid);
             asteroid.body.setSize(asteroid.width * 0.8, asteroid.height * 0.8);
             
@@ -1574,6 +1587,7 @@ class SpaceScene extends Phaser.Scene {
                 Math.sin(angle) * speed
             );
             asteroid.body.setAngularVelocity(Phaser.Math.Between(-100, 100));
+            // Add to asteroids group
             this.asteroids.add(asteroid);
             // Make sure asteroid is visible and active
             asteroid.setActive(true);
@@ -1581,14 +1595,24 @@ class SpaceScene extends Phaser.Scene {
             return asteroid;
         }
         
-        // Normal spawn - spawn off screen to the right
-        let spawnX = width + 50;
-        let spawnY = Phaser.Math.Between(100, height - 100);
+        // Normal spawn - spawn near the spaceship (player is typically at ~25% width)
+        // Don't spawn at bottom of screen (reserve bottom area for cover)
+        // Spawn in upper 60% of screen to allow bottom area for cover
+        let bottomReserve = height * 0.4; // Reserve bottom 40% of screen
+        let shipX = this.ship ? this.ship.x : width * 0.25; // Default to 25% if ship not available
+        let shipY = this.ship ? this.ship.y : height * 0.5; // Default to middle if ship not available
         
-        // Random size (70% small, 20% medium, 10% large)
+        // Spawn asteroids near the ship (to the right of ship, within reasonable range)
+        let spawnX = shipX + Phaser.Math.Between(100, 300); // Spawn 100-300 pixels to the right of ship
+        // Spawn at similar Y level as ship, but with some variation
+        let spawnY = shipY + Phaser.Math.Between(-100, 100);
+        // Clamp Y to upper 60% of screen (avoid bottom area)
+        spawnY = Phaser.Math.Clamp(spawnY, 100, height - bottomReserve);
+        
+        // Random size (60% small, 30% medium, 10% large) - adjusted for better balance
         if (!size) {
             let rand = Phaser.Math.Between(1, 100);
-            if (rand <= 70) {
+            if (rand <= 60) {
                 size = 'small';
             } else if (rand <= 90) {
                 size = 'medium';
@@ -1598,10 +1622,14 @@ class SpaceScene extends Phaser.Scene {
         }
         
         let asteroid = new Asteroid(this, spawnX, spawnY, size);
+        // Add to scene display list first (required for rendering)
+        this.add.existing(asteroid);
+        // Then add physics
         this.physics.add.existing(asteroid);
         asteroid.body.setSize(asteroid.width * 0.8, asteroid.height * 0.8);
         asteroid.body.setVelocity(this.obstacleSpeed, 0);
         asteroid.body.setAngularVelocity(Phaser.Math.Between(-50, 50));
+        // Add to asteroids group
         this.asteroids.add(asteroid);
         // Make sure asteroid is visible and active
         asteroid.setActive(true);
@@ -1612,25 +1640,56 @@ class SpaceScene extends Phaser.Scene {
     
     // Spawn a satellite
     spawnSatellite() {
-        if (this.over) return;
+        if (this.over || !this.canMove || !this.satellites) return;
         
         let width = this.cameras.main.width;
         let height = this.cameras.main.height;
         
-        // Spawn slightly off screen from top or bottom, protruding into playable area
-        let spawnFromTop = Phaser.Math.Between(0, 1) === 0;
-        let spawnX = Phaser.Math.Between(width * 0.7, width - 50);
-        let spawnY = spawnFromTop ? -30 : height + 30; // Slightly off screen
+        // Spawn slightly off screen from top only (not bottom) to allow bottom area for cover
+        // Similar to walls in Vanguard - spawn from top edge only
+        // Check for existing satellites to prevent overlap
+        let attempts = 0;
+        let spawnX, spawnY;
+        let minDistance = 150; // Minimum distance between satellites
+        
+        do {
+            spawnX = Phaser.Math.Between(width * 0.7, width - 50);
+            spawnY = -40; // Spawn from top only
+            attempts++;
+            
+            // Check if this position is too close to existing satellites
+            let tooClose = false;
+            if (this.satellites && this.satellites.children.entries.length > 0) {
+                for (let existingSat of this.satellites.children.entries) {
+                    if (!existingSat || !existingSat.active) continue;
+                    let dx = spawnX - existingSat.x;
+                    let dy = spawnY - existingSat.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < minDistance) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!tooClose) break;
+        } while (attempts < 10); // Try up to 10 times to find a good position
         
         let satellite = new Satellite(this, spawnX, spawnY);
+        // Add to scene display list first (required for rendering)
+        this.add.existing(satellite);
+        // Then add physics
         this.physics.add.existing(satellite);
         satellite.body.setSize(satellite.width * 0.9, satellite.height * 0.9);
         satellite.body.setVelocity(this.obstacleSpeed * 0.7, 0); // Move slower than asteroids
         satellite.body.setImmovable(false); // Satellites move with the screen
+        // Add to satellites group
         this.satellites.add(satellite);
         // Make sure satellite is visible and active
         satellite.setActive(true);
         satellite.setVisible(true);
+        // Mark as indestructible
+        satellite.indestructible = true;
         
         return satellite;
     }
@@ -1782,7 +1841,7 @@ class SpaceScene extends Phaser.Scene {
 			this.yMove = 0;
 		}
 
-		if (this.enter.isDown && this.over) {
+		if (this.enter && this.enter.isDown && this.over) {
 			this.formation = 'wedge';
 			if (this.ending && this.ending.isPlaying) {
 				this.ending.stop();
@@ -1790,6 +1849,9 @@ class SpaceScene extends Phaser.Scene {
 			if (this.waveSound) {
 				this.waveSound.play();
 			}
+			// Reset game state before restart
+			this.over = false;
+			this.canMove = true;
 			this.scene.restart();
         }
 
@@ -2154,10 +2216,12 @@ class SpaceScene extends Phaser.Scene {
                 let hitRadius = (this.ship.width + asteroid.width) * 0.4;
                 
                 if (distance < hitRadius) {
-                    // Player takes damage from asteroid
-                    this.updateShipHealth(this.ship, 20);
-                    // Asteroid is destroyed on contact
-                    asteroid.destroy();
+                    // Player takes damage from asteroid (15 damage as specified)
+                    this.updateShipHealth(this.ship, 15);
+                    // Push player away slightly to prevent continuous damage
+                    let pushAngle = Math.atan2(dy, dx);
+                    this.ship.x -= Math.cos(pushAngle) * 5;
+                    this.ship.y -= Math.sin(pushAngle) * 5;
                 }
             });
         }
@@ -2174,10 +2238,12 @@ class SpaceScene extends Phaser.Scene {
                     let hitRadius = (convoyShip.width + asteroid.width) * 0.4;
                     
                     if (distance < hitRadius) {
-                        // Convoy takes damage from asteroid
-                        this.updateShipHealth(convoyShip, 20);
-                        // Asteroid is destroyed on contact
-                        asteroid.destroy();
+                        // Convoy takes damage from asteroid (15 damage as specified)
+                        this.updateShipHealth(convoyShip, 15);
+                        // Push convoy away slightly to prevent continuous damage
+                        let pushAngle = Math.atan2(dy, dx);
+                        convoyShip.x -= Math.cos(pushAngle) * 5;
+                        convoyShip.y -= Math.sin(pushAngle) * 5;
                     }
                 });
             });
@@ -2193,8 +2259,12 @@ class SpaceScene extends Phaser.Scene {
                 let hitRadius = (this.ship.width + satellite.width) * 0.4;
                 
                 if (distance < hitRadius) {
-                    // Player takes damage from satellite
-                    this.updateShipHealth(this.ship, 25);
+                    // Player takes damage from satellite (20 damage as specified)
+                    this.updateShipHealth(this.ship, 20);
+                    // Push player away to prevent continuous damage
+                    let pushAngle = Math.atan2(dy, dx);
+                    this.ship.x -= Math.cos(pushAngle) * 8;
+                    this.ship.y -= Math.sin(pushAngle) * 8;
                 }
             });
         }
@@ -2211,14 +2281,19 @@ class SpaceScene extends Phaser.Scene {
                     let hitRadius = (convoyShip.width + satellite.width) * 0.4;
                     
                     if (distance < hitRadius) {
-                        // Convoy takes damage from satellite
-                        this.updateShipHealth(convoyShip, 25);
+                        // Convoy takes damage from satellite (20 damage as specified)
+                        this.updateShipHealth(convoyShip, 20);
+                        // Push convoy away to prevent continuous damage
+                        let pushAngle = Math.atan2(dy, dx);
+                        convoyShip.x -= Math.cos(pushAngle) * 8;
+                        convoyShip.y -= Math.sin(pushAngle) * 8;
                     }
                 });
             });
         }
         
         // UFO collision with asteroids (UFOs are blocked/destroyed)
+        // Check this BEFORE other updates to catch UFOs before they move
         if (this.asteroids && this.ufos && !this.over) {
             this.ufos.children.iterate(ufo => {
                 if (!ufo || !ufo.active) return;
@@ -2230,8 +2305,9 @@ class SpaceScene extends Phaser.Scene {
                     let dx = asteroid.x - ufo.x;
                     let dy = asteroid.y - ufo.y;
                     let distance = Math.sqrt(dx * dx + dy * dy);
-                    // Increased hit radius to prevent UFOs from passing through
-                    let hitRadius = (ufo.width + asteroid.width) * 0.5;
+                    // Much larger hit radius to prevent UFOs from passing through
+                    // Use larger multiplier to account for follower movement
+                    let hitRadius = (ufo.width + asteroid.width) * 0.65;
                     
                     if (distance < hitRadius) {
                         // UFO is destroyed when hitting asteroid
