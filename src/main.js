@@ -1570,7 +1570,7 @@ class SpaceScene extends Phaser.Scene {
 				imageKey = 'smmeteor' + Phaser.Math.Between(1, 4);
 			}
 			let asteroid = this.make.image(this.assetConfig(x, y, imageKey, 0, 1, .75))
-			asteroid.health = size === 'large' ? 3 : (size === 'medium' ? 2 : 1);
+			asteroid.health = size === 'large' ? 15 : (size === 'medium' ? 10 : 5);
 			asteroid.maxHealth = this.health;
 			asteroid.flashTimer = 0;
 
@@ -1610,7 +1610,10 @@ class SpaceScene extends Phaser.Scene {
 		} else if (size === 'small') {
 			imageKey = 'smmeteor' + Phaser.Math.Between(1, 4);
 		}
-		let asteroid = this.make.image(this.assetConfig(spawnX, spawnY, "imageKey", Phaser.Math.Between(0, Math.PI * 2), 1, .75))
+		let asteroid = this.make.image(this.assetConfig(spawnX, spawnY, imageKey, Phaser.Math.Between(0, Math.PI * 2), 1, .75))
+		asteroid.health = size === 'large' ? 15 : (size === 'medium' ? 10 : 5);
+		asteroid.maxHealth = this.health;
+		asteroid.flashTimer = 0;
         this.asteroids.add(asteroid);
         this.physics.add.existing(asteroid);
         asteroid.body.setVelocity(this.obstacleSpeed, 0);
@@ -1621,9 +1624,15 @@ class SpaceScene extends Phaser.Scene {
 
 	asteroidDamage(asteroid) {
 		asteroid.health--;
+		console.log(asteroid.health)
 		// Flash white when damaged
 		asteroid.flashTimer = 300; // Flash for 300ms
 		asteroid.setTint(0xffffff);
+			this.time.delayedCall(100, () => {
+				if (asteroid && asteroid.active) {
+					asteroid.clearTint();
+				}
+			});
 		
 		if (asteroid.health <= 0) {
 			// Break down or destroy
