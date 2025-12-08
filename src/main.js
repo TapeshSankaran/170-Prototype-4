@@ -476,11 +476,6 @@ class SpaceScene extends Phaser.Scene {
 		let convoyUI = width - 180;
 		let shipUI = 285;
 
-		// ======= TEST METEOR + SATELLITE SPAWN ======
-		var mediumMeteor = this.make.image(this.assetConfig(1400, 250, "medmeteor1", 0, 1, .75))
-		var largeMeteor = this.make.image(this.assetConfig(600, 500, "lgmeteor", 0, 1, .75))
-		var satellite = this.make.image(this.assetConfig(900, 100, "satellite2", 320, 1, 1))
-
 		// UI for Convoy Controls
 		var convoyGuide = this.make.image(this.assetConfig(convoyUI - 125, uiHeight, "convoyBlue", 0, .5, .5));
 		var upArrow = this.make.image(this.assetConfig(convoyUI, uiHeight - 40, "arrowkey", 0));
@@ -1805,10 +1800,8 @@ class SpaceScene extends Phaser.Scene {
 		// Hide powerUpFire animation from ship
 		if (this.poweredUpEffect && this.poweredUpEffect.sprite) {
 			if (this.poweredUp) {
-				console.log("goodbye");
 				this.poweredUpEffect.sprite.setVisible(true);
 			} else {
-				console.log("hello");
 				this.poweredUpEffect.sprite.setVisible(false);
 			}
 			this.poweredUpEffect.setPos(this.ship.x, this.ship.y);
