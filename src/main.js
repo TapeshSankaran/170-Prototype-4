@@ -684,10 +684,10 @@ class SpaceScene extends Phaser.Scene {
 		}
 		// Clear all obstacles
 		if (this.asteroids) {
-			this.asteroids.clear(true, true);
+			this.asteroids.destroy();
 		}
 		if (this.satellites) {
-			this.satellites.clear(true, true);
+			this.satellites.destroy();
 		}
 		// ========== OBSTACLES CODE END ==========
 	}
@@ -1624,7 +1624,6 @@ class SpaceScene extends Phaser.Scene {
 
 	asteroidDamage(asteroid) {
 		asteroid.health--;
-		console.log(asteroid.health)
 		// Flash white when damaged
 		asteroid.setTintFill(0xffffff);
 			this.time.delayedCall(100, () => {
