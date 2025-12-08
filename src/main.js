@@ -2211,6 +2211,76 @@ class SpaceScene extends Phaser.Scene {
                 });
             });
         }
+        
+        // UFO collision with asteroids (UFOs are blocked/destroyed)
+        if (this.asteroids && this.ufos && !this.over) {
+            this.ufos.children.iterate(ufo => {
+                if (!ufo || !ufo.active) return;
+                // Skip convoy ships (allies)
+                if (ufo.getData && ufo.getData('isAlly')) return;
+                
+                this.asteroids.children.entries.forEach(asteroid => {
+                    if (!asteroid || !asteroid.active) return;
+                    let dx = asteroid.x - ufo.x;
+                    let dy = asteroid.y - ufo.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    let hitRadius = (ufo.width + asteroid.width) * 0.4;
+                    
+                    if (distance < hitRadius) {
+                        // UFO is destroyed when hitting asteroid
+                        ufo.destroy();
+                        this.numUFOS--;
+                        this.boomSound.play();
+                        let boom = this.add.image(ufo.x, ufo.y, 'ufod');
+                        boom.scale *= 0.75;
+                        boom.rotation += Phaser.Math.Between(45, 135);
+                        this.tweens.add({
+                            targets: boom,
+                            alpha: { from: 1, to: 0},
+                            x: { from : boom.x, to: boom.x + -this.speed*67},
+                            ease: 'Sine.easeOut',
+                            duration: 500
+                        });
+                        // Asteroid also takes damage
+                        asteroid.takeDamage();
+                    }
+                });
+            });
+        }
+        
+        // UFO collision with satellites (UFOs are blocked/destroyed)
+        if (this.satellites && this.ufos && !this.over) {
+            this.ufos.children.iterate(ufo => {
+                if (!ufo || !ufo.active) return;
+                // Skip convoy ships (allies)
+                if (ufo.getData && ufo.getData('isAlly')) return;
+                
+                this.satellites.children.entries.forEach(satellite => {
+                    if (!satellite || !satellite.active) return;
+                    let dx = satellite.x - ufo.x;
+                    let dy = satellite.y - ufo.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    let hitRadius = (ufo.width + satellite.width) * 0.4;
+                    
+                    if (distance < hitRadius) {
+                        // UFO is destroyed when hitting satellite
+                        ufo.destroy();
+                        this.numUFOS--;
+                        this.boomSound.play();
+                        let boom = this.add.image(ufo.x, ufo.y, 'ufod');
+                        boom.scale *= 0.75;
+                        boom.rotation += Phaser.Math.Between(45, 135);
+                        this.tweens.add({
+                            targets: boom,
+                            alpha: { from: 1, to: 0},
+                            x: { from : boom.x, to: boom.x + -this.speed*67},
+                            ease: 'Sine.easeOut',
+                            duration: 500
+                        });
+                    }
+                });
+            });
+        }
         // ========== OBSTACLES CODE END ==========
 
 		// ========== WAVE DIFFICULTY CODE START ==========
