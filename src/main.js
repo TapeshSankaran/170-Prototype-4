@@ -196,8 +196,11 @@ class SpaceScene extends Phaser.Scene {
         // Convoy properties (convoys group will be created in create() method)
         this.convoyActive = false;
         this.convoySpawnTimer = null;
+<<<<<<< Updated upstream
         this.convoyLaserGroup = null;
         this.convoyShootTimer = null;
+=======
+>>>>>>> Stashed changes
         // ========== CONVOY CODE END ==========
 
 		this.formchange = false;
@@ -388,6 +391,7 @@ class SpaceScene extends Phaser.Scene {
         this.spawnUFO();
         
         // ========== CONVOY CODE START ==========
+<<<<<<< Updated upstream
         // Create convoy group and spawn immediately
         this.convoys = this.physics.add.group();
         // Spawn convoy immediately when player spawns
@@ -398,11 +402,22 @@ class SpaceScene extends Phaser.Scene {
             callback: () => {
                 if (!this.over && this.canMove && this.convoys.children.entries.length > 0) {
                     this.convoyShoot();
+=======
+        // Create convoy group and start periodic convoy spawning
+        this.convoys = this.physics.add.group();
+        // Spawn convoy periodically every 15-25 seconds
+        this.convoySpawnTimer = this.time.addEvent({
+            delay: Phaser.Math.Between(15000, 25000),
+            callback: () => {
+                if (!this.over && this.canMove) {
+                    this.spawnConvoy();
+>>>>>>> Stashed changes
                 }
             },
             loop: true
         });
         // ========== CONVOY CODE END ==========
+<<<<<<< Updated upstream
 		this.powerUpFire.create();
 		// Hide powerUpFire animation - user doesn't want it visible on ship
 		if (this.powerUpFire && this.powerUpFire.sprite) {
@@ -433,6 +448,8 @@ class SpaceScene extends Phaser.Scene {
 			},
 			origin: {x: 0.5, y: 0.5}
 		};
+=======
+>>>>>>> Stashed changes
 	}
 
 	saveHighscore(score) {
@@ -464,6 +481,7 @@ class SpaceScene extends Phaser.Scene {
 		if (this.convoySpawnTimer) {
 			this.convoySpawnTimer.remove();
 		}
+<<<<<<< Updated upstream
 		if (this.convoyShootTimer) {
 			this.convoyShootTimer.remove();
 		}
@@ -484,6 +502,9 @@ class SpaceScene extends Phaser.Scene {
 			this.powerUpSpawnTimer.remove();
 		}
 		// ========== POWER-UP CODE END ==========
+=======
+		// ========== CONVOY CODE END ==========
+>>>>>>> Stashed changes
 	}
 
 	addShip() {
@@ -915,6 +936,7 @@ class SpaceScene extends Phaser.Scene {
     }
     
     // ========== CONVOY CODE START ==========
+<<<<<<< Updated upstream
     // Method to spawn a convoy of ally ships that stay with the player
     spawnConvoy() {
         let width = this.cameras.main.width;
@@ -1252,6 +1274,116 @@ class SpaceScene extends Phaser.Scene {
         });
     }
     // ========== POWER-UP CODE END ==========
+=======
+    // Method to spawn a convoy of ships in formation
+    spawnConvoy() {
+    this.stringarray = ["ufob", "ufobl", "ufop", "ufog", "ufoy"];
+    let width = this.cameras.main.width;
+    let height = this.cameras.main.height;
+    
+    // Number of ships in convoy
+    let convoySize = Phaser.Math.Between(3, 6);
+    let baseX = Phaser.Math.Between(width * 0.7, width);
+    let baseY = Phaser.Math.Between(height * 0.2, height * 0.8);
+    
+    // Spacing between convoy ships
+    let spacing = 60;
+    let formation = Phaser.Math.Between(0, 2); // 0 = line, 1 = V, 2 = diamond
+    
+    for (let i = 0; i < convoySize; i++) {
+        let color = this.stringarray[i % 5];
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        // Different formations
+        if (formation === 0) {
+            // Horizontal line
+            offsetX = i * spacing - (convoySize * spacing) / 2;
+            offsetY = 0;
+        } else if (formation === 1) {
+            // V formation
+            offsetX = (i - convoySize / 2) * spacing * 0.7;
+            offsetY = Math.abs(i - convoySize / 2) * spacing * 0.5;
+        } else {
+            // Diamond formation
+            if (i === 0) {
+                offsetX = 0;
+                offsetY = 0;
+            } else if (i === 1 || i === 2) {
+                offsetX = (i === 1 ? -spacing : spacing);
+                offsetY = 0;
+            } else {
+                offsetX = (i % 2 === 0 ? -spacing * 1.5 : spacing * 1.5);
+                offsetY = spacing;
+            }
+        }
+        
+        let startX = baseX + offsetX;
+        let startY = baseY + offsetY;
+        
+        // Create convoy path - move across screen together
+        let endX = -100;
+        let endY = startY + Phaser.Math.Between(-100, 100);
+        
+        let points = [
+            startX, startY,
+            (startX + endX) / 2, (startY + endY) / 2 + Phaser.Math.Between(-50, 50),
+            endX, endY
+        ];
+        
+        let curve = new Phaser.Curves.Spline(points);
+        let convoyShip = this.add.follower(curve, startX, startY, color);
+        
+        // Spawn effect
+        let spawner = this.add.image(convoyShip.x, convoyShip.y, 'spawn');
+        spawner.scale *= 1.5;
+        spawner.rotation += Phaser.Math.Between(40, 60);
+        this.tweens.add({
+            targets: spawner,
+            alpha: { from: 1, to: 0},
+            rotation: {from: 0, to: 90},
+            ease: 'Sine.easeInOut',
+            duration: 500
+        });
+        
+        this.tweens.add({
+            targets: convoyShip,
+            alpha: { from: 0, to: 1},
+            ease: 'Sine.easeIn',
+            duration: 500
+        });
+        
+        convoyShip.scale *= 0.4;
+        convoyShip.setData('convoyIndex', i);
+        convoyShip.setData('baseOffset', {x: offsetX, y: offsetY});
+        convoyShip.setData('formation', formation);
+        
+        // Start movement
+        let duration = Phaser.Math.Between(8000, 12000);
+        convoyShip.startFollow({
+            from: 0,
+            to: 1,
+            delay: 0,
+            duration: duration,
+            ease: 'Sine.easeInOut',
+            rotateToPath: false,
+            rotationOffset: -90,
+            onComplete: () => {
+                convoyShip.destroy();
+            }
+        });
+        
+        this.physics.add.existing(convoyShip);
+        this.ufos.add(convoyShip);
+        this.convoys.add(convoyShip);
+    }
+    
+    this.numUFOS += convoySize;
+    this.convoyActive = true;
+}
+    // ========== CONVOY CODE END ==========
+
+>>>>>>> Stashed changes
 
 	fireBullet() {
 		this.laserGroup.fireBullet(this.ship.x, this.ship.y - 20);
@@ -1357,7 +1489,22 @@ class SpaceScene extends Phaser.Scene {
 
 		});
 		if (laser != null) {
+<<<<<<< Updated upstream
 			this.numUFOS--;
+=======
+        	this.numUFOS--;
+        	
+        	// ========== CONVOY CODE START ==========
+        	// Check if destroyed UFO was part of a convoy and clean it up
+        	if (this.convoys.contains(ufo)) {
+        		this.convoys.remove(ufo);
+        		if (this.convoys.children.entries.length === 0) {
+        			this.convoyActive = false;
+        		}
+        	}
+        	// ========== CONVOY CODE END ==========
+        	
+>>>>>>> Stashed changes
 			if (this.numUFOS == 0) {
 				this.waveSound.play();
 				this.score += 500 * (0.5 * this.wave);
